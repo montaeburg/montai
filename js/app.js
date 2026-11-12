@@ -553,7 +553,7 @@ function configurarEventos() {
 // ============ INIT ============
 document.addEventListener('DOMContentLoaded', async () => {
   await carregarCatalogo();
-  iniciarMontagem();
+  montagemPadrao();
   await verificarSessao();
   renderTudo();
   configurarEventos();
