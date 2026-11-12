@@ -1,6 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
-// ⚠️ SUBSTITUA PELOS DADOS DO SEU PROJETO
 const SUPABASE_URL = window.MONTAE_CONFIG.SUPABASE_URL;
 const SUPABASE_ANON_KEY = window.MONTAE_CONFIG.SUPABASE_ANON_KEY;
 
@@ -12,9 +11,23 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
 const catalogo = { categorias: [], ingredientes: [], inclusos: [], receitas: [], bebidas: [], extras: [] };
 const montagem = { camadas: {}, inclusos: {}, observacao: '' };
 const carrinho = { itens: [] };
+
 let usuario = null;
 let catAtiva = 'all';
 let modoCadastro = false;
+
+// Configurações vindas do banco
+let precoBase = 4.00;
+let inclusosPadrao = ['alface', 'tomate', 'cebola', 'ketchup', 'maionese'];
+let idsFixo = ['pao-baixo', 'pao-cima', 'carne'];
+
+// Ordem visual das camadas no hambúrguer
+const LAYER_ORDER = [
+  'bun-bottom', 'ketchup', 'maionese', 'molho-especial',
+  'lettuce', 'tomato', 'onion',
+  'patty', 'extra-patty', 'cheese', 'bacon', 'calabresa', 'egg',
+  'straw', 'doritos', 'bun-top'
+];
 
 // ============ HELPERS ============
 const $ = (id) => document.getElementById(id);
@@ -32,7 +45,7 @@ function toast(msg) {
 
 // ============ CATÁLOGO ============
 async function carregarCatalogo() {
-  const [cats, ings, incs, recs, bebs, exts] = await Promise.all([
+  const consultas = await Promise.all([
     supabase.from('categorias').select('*').order('ordem'),
     supabase.from('ingredientes').select('*').eq('ativo', true).order('ordem'),
     supabase.from('inclusos').select('*').eq('ativo', true).order('ordem'),
@@ -40,30 +53,67 @@ async function carregarCatalogo() {
     supabase.from('bebidas').select('*').eq('ativo', true).order('ordem'),
     supabase.from('adicionais_extras').select('*').eq('ativo', true).order('ordem')
   ]);
-  catalogo.categorias = cats.data || [];
-  catalogo.ingredientes = ings.data || [];
-  catalogo.inclusos = incs.data || [];
-  catalogo.receitas = recs.data || [];
-  catalogo.bebidas = bebs.data || [];
-  catalogo.extras = exts.data || [];
+
+  const nomes = ['categorias', 'ingredientes', 'inclusos', 'receitas', 'bebidas', 'extras'];
+  consultas.forEach((r, i) => {
+    if (r.error) console.error(`ERRO em ${nomes[i]}:`, r.error.message);
+    else console.log(`${nomes[i]}: ${r.data?.length || 0} registros`);
+  });
+
+  catalogo.categorias = consultas[0].data || [];
+  catalogo.ingredientes = consultas[1].data || [];
+  catalogo.inclusos = consultas[2].data || [];
+  catalogo.receitas = consultas[3].data || [];
+  catalogo.bebidas = consultas[4].data || [];
+  catalogo.extras = consultas[5].data || [];
+}
+
+async function carregarConfiguracoes() {
+  const { data, error } = await supabase.from('configuracoes').select('*');
+  if (error) {
+    console.error('ERRO em configuracoes:', error.message);
+    return;
+  }
+  (data || []).forEach(c => {
+    if (c.chave === 'preco_base') precoBase = Number(c.valor);
+    if (c.chave === 'inclusos_padrao') inclusosPadrao = c.valor.split(',').map(s => s.trim());
+    if (c.chave === 'ids_fixos') idsFixo = c.valor.split(',').map(s => s.trim());
+  });
+  console.log('precoBase:', precoBase, '| inclusosPadrao:', inclusosPadrao);
 }
 
 // ============ MONTAGEM ============
 function iniciarMontagem() {
   montagem.camadas = {};
   montagem.inclusos = {};
-  catalogo.inclusos.forEach(i => { montagem.inclusos[i.id] = i.padrao; });
+  catalogo.inclusos.forEach(i => { montagem.inclusos[i.id] = false; });
   montagem.observacao = '';
   $('obsText').value = '';
   $('obsCounter').textContent = '0/200';
 }
 
-// Montagem padrão ao abrir a página
 function montagemPadrao() {
-  iniciarMontagem();
-  // Carne é o único ingrediente que vem por padrão
+  montagem.camadas = {};
+  montagem.inclusos = {};
+
+  // Inclusos padrão marcados
+  catalogo.inclusos.forEach(i => { montagem.inclusos[i.id] = false; });
+  inclusosPadrao.forEach(id => {
+    if (catalogo.inclusos.some(i => i.id === id)) montagem.inclusos[id] = true;
+  });
+
+  // Pão base, carne e pão topo
+  const paoBaixo = catalogo.ingredientes.find(i => i.layer === 'bun-bottom');
   const carne = catalogo.ingredientes.find(i => i.id === 'carne' || i.layer === 'patty');
+  const paoCima = catalogo.ingredientes.find(i => i.layer === 'bun-top');
+
+  if (paoBaixo) montagem.camadas[paoBaixo.id] = 1;
   if (carne) montagem.camadas[carne.id] = 1;
+  if (paoCima) montagem.camadas[paoCima.id] = 1;
+
+  montagem.observacao = '';
+  $('obsText').value = '';
+  $('obsCounter').textContent = '0/200';
 }
 
 function setQtd(id, qtd) {
@@ -71,13 +121,14 @@ function setQtd(id, qtd) {
   else montagem.camadas[id] = qtd;
   renderIngredientes();
   renderBurger();
+  renderResumo();
+  atualizarTotais();
 }
 
 function precoMontagem() {
   let total = precoBase;
   Object.entries(montagem.camadas).forEach(([id, q]) => {
-    // Pão já está no preço base
-    if (id === 'pao-baixo' || id === 'pao-cima') return;
+    if (id === 'pao-baixo' || id === 'pao-cima') return; // pão está no preço base
     const ing = catalogo.ingredientes.find(i => i.id === id);
     if (ing) total += Number(ing.preco) * q;
   });
@@ -86,11 +137,13 @@ function precoMontagem() {
 
 function camadasVisuais() {
   const lista = [];
+
   catalogo.inclusos.forEach(inc => {
     if (montagem.inclusos[inc.id] && inc.imagem_url) {
       lista.push({ layer: inc.layer, url: inc.imagem_url, nome: inc.nome });
     }
   });
+
   Object.entries(montagem.camadas).forEach(([id, q]) => {
     const ing = catalogo.ingredientes.find(i => i.id === id);
     if (!ing || !ing.imagem_url) return;
@@ -98,7 +151,12 @@ function camadasVisuais() {
       lista.push({ layer: ing.layer, url: ing.imagem_url, nome: ing.nome });
     }
   });
-  return lista;
+
+  return lista.sort((a, b) => {
+    const ia = LAYER_ORDER.indexOf(a.layer);
+    const ib = LAYER_ORDER.indexOf(b.layer);
+    return (ia === -1 ? 999 : ia) - (ib === -1 ? 999 : ib);
+  });
 }
 
 // ============ RENDER ============
@@ -122,9 +180,14 @@ function renderInclusos() {
 
 function renderIngredientes() {
   const cats = catalogo.categorias.filter(c => catAtiva === 'all' || c.id === catAtiva);
+
   $('listaIngredientes').innerHTML = cats.map(cat => {
-    const itens = catalogo.ingredientes.filter(i => i.categoria_id === cat.id);
+    // Esconde pão e carne da lista (já vêm no padrão)
+    const itens = catalogo.ingredientes.filter(i =>
+      i.categoria_id === cat.id && !idsFixo.includes(i.id)
+    );
     if (!itens.length) return '';
+
     return `
       <div class="section-head"><h2>${esc(cat.nome)}</h2></div>
       ${itens.map(item => {
@@ -192,7 +255,7 @@ function renderCarrinho() {
       <li class="drawer-item">
         <div>
           <div>${esc(i.nome)}</div>
-          <div class="meta">${Object.values(i.camadas).reduce((s,q)=>s+q,0)} complementos</div>
+          <div class="meta">${Object.values(i.camadas).reduce((s, q) => s + q, 0)} complementos</div>
         </div>
         <div style="display:flex; align-items:center; gap:8px;">
           <span>${fmt(i.preco)}</span>
@@ -222,7 +285,8 @@ async function renderSalvos() {
     $('listaSalvos').innerHTML = '<li class="empty-state">Entre para ver seus hambúrgueres salvos.</li>';
     return;
   }
-  const { data } = await supabase.from('hamburgueres_salvos').select('*').order('criado_em', { ascending: false });
+  const { data, error } = await supabase.from('hamburgueres_salvos').select('*').order('criado_em', { ascending: false });
+  if (error) { console.error('ERRO salvos:', error.message); return; }
   if (!data || !data.length) {
     $('listaSalvos').innerHTML = '<li class="empty-state">Nenhum hambúrguer salvo ainda.</li>';
     return;
@@ -242,7 +306,7 @@ async function renderSalvos() {
 }
 
 function atualizarTotais() {
-  const total = precoMontagem() + carrinho.itens.reduce((s,i)=>s+i.preco, 0);
+  const total = precoMontagem() + carrinho.itens.reduce((s, i) => s + i.preco, 0);
   $('footTotal').textContent = fmt(total);
 }
 
@@ -318,7 +382,7 @@ function adicionarAoCarrinho(nome) {
     observacao: montagem.observacao,
     preco: precoMontagem()
   });
-  iniciarMontagem();
+  montagemPadrao();
   renderTudo();
   toast('Adicionado ao carrinho');
 }
@@ -343,18 +407,22 @@ async function salvarHamburguer() {
 }
 
 async function carregarReceita(id) {
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from('receita_itens')
     .select('*, ingrediente:ingredientes(*), incluso:inclusos(*)')
     .eq('receita_id', id);
 
-  iniciarMontagem();
+  if (error) { toast('Erro ao carregar receita'); return; }
+
+  montagemPadrao();
+
   (data || []).forEach(item => {
     if (item.ingrediente_id) {
       montagem.camadas[item.ingrediente_id] = (montagem.camadas[item.ingrediente_id] || 0) + item.quantidade;
     }
     if (item.incluso_id) montagem.inclusos[item.incluso_id] = true;
   });
+
   const receita = catalogo.receitas.find(r => r.id === id);
   if (receita?.observacao_padrao) {
     montagem.observacao = receita.observacao_padrao;
@@ -362,7 +430,7 @@ async function carregarReceita(id) {
   }
   $('receitasOverlay').classList.remove('open');
   renderTudo();
-  toast(receita?.nome + ' carregado');
+  toast((receita?.nome || 'Receita') + ' carregada');
 }
 
 async function carregarSalvo(id) {
@@ -389,7 +457,7 @@ async function finalizarPedido(e) {
     cidade: $('endCidade').value, estado: $('endEstado').value
   };
 
-  const subtotal = carrinho.itens.reduce((s,i)=>s+i.preco, 0);
+  const subtotal = carrinho.itens.reduce((s, i) => s + i.preco, 0);
 
   const { data: pedido, error: errPed } = await supabase.from('pedidos').insert({
     user_id: usuario.id,
@@ -458,6 +526,7 @@ function configurarEventos() {
 
   $('btnAdicionar').addEventListener('click', () => adicionarAoCarrinho());
   $('btnSalvar').addEventListener('click', salvarHamburguer);
+
   $('checkout').addEventListener('click', () => {
     if (!usuario) { abrirLogin(); return; }
     if (!carrinho.itens.length && !Object.keys(montagem.camadas).length) {
@@ -554,9 +623,15 @@ function configurarEventos() {
 
 // ============ INIT ============
 document.addEventListener('DOMContentLoaded', async () => {
-  await carregarCatalogo();
-  montagemPadrao();
-  await verificarSessao();
-  renderTudo();
-  configurarEventos();
+  try {
+    await carregarCatalogo();
+    await carregarConfiguracoes();
+    montagemPadrao();
+    await verificarSessao();
+    renderTudo();
+    configurarEventos();
+    console.log('montaê iniciado com sucesso');
+  } catch (err) {
+    console.error('ERRO na inicialização:', err);
+  }
 });
