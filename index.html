@@ -145,7 +145,6 @@ input, textarea { font-family: inherit; }
   align-items: center;
   justify-content: flex-start;
 }
-
 .layer {
   width: 100%;
   display: flex;
@@ -153,22 +152,18 @@ input, textarea { font-family: inherit; }
   margin-top: calc(var(--overlap) * -1);
   animation: layerFade 0.4s ease both;
 }
-
 .layer img {
   width: 100%; height: auto; display: block; object-fit: contain;
   filter: drop-shadow(0 2px 3px rgba(0,0,0,0.08));
 }
-
 /* Apenas o pão de cima não sobrepõe */
 .layer[data-layer="bun-top"] {
   margin-top: 0;
 }
-
 @keyframes layerFade {
   from { opacity: 0; }
   to   { opacity: 1; }
 }
-
 .empty-stage { color: #4A443C; font-size: 0.9rem; text-align: center; padding: 40px 20px; }
 
 /* Resumo */
@@ -255,6 +250,9 @@ input, textarea { font-family: inherit; }
 .modal h3 {
   font-family: var(--font-serif); font-weight: 500; font-size: 1.5rem; margin: 0 0 6px;
 }
+.modal h4 {
+  font-family: var(--font-serif); font-weight: 500; font-size: 1rem; margin: 20px 0 10px;
+}
 .muted-sm { color: var(--text-muted); font-size: 0.85rem; margin: 0 0 16px; }
 .close-x {
   float: right; background: none; border: none; color: var(--text-muted);
@@ -275,6 +273,45 @@ input, textarea { font-family: inherit; }
   display: none; margin: 8px 0 0; font-size: 0.8rem; color: #E8806F;
 }
 .error-msg.show { display: block; }
+
+/* Endereços */
+.endereco-card {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 12px 14px; margin-bottom: 8px;
+  border: 1px solid rgba(255,255,255,0.08); border-radius: var(--radius);
+  background: var(--surface); cursor: pointer; transition: all 0.2s;
+}
+.endereco-card:hover { border-color: rgba(217,162,74,0.4); }
+.endereco-card.selected {
+  border-color: var(--accent); background: rgba(217,162,74,0.08);
+}
+.endereco-card input { margin-top: 3px; accent-color: var(--accent); }
+.endereco-rotulo {
+  font-weight: 600; font-size: 0.9rem; color: var(--accent-text);
+  margin-bottom: 2px;
+}
+.endereco-card .meta { font-size: 0.78rem; color: var(--text-muted); }
+#btnNovoEndereco { width: 100%; margin-bottom: 12px; }
+#formNovoEndereco { display: none; }
+
+/* Perfil */
+.perfil-head {
+  display: flex; flex-direction: column; gap: 2px;
+  padding-bottom: 14px; margin-bottom: 6px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+.perfil-head .nome { font-family: var(--font-serif); font-size: 1.3rem; }
+.perfil-head .tel { font-size: 0.85rem; color: var(--text-muted); }
+.status-badge {
+  padding: 4px 10px; border-radius: 999px; font-size: 0.7rem;
+  text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600;
+  white-space: nowrap;
+}
+.status-pendente { background: rgba(217,162,74,0.18); color: var(--accent-text); }
+.status-preparando { background: rgba(90,150,220,0.18); color: #7FB3E8; }
+.status-entrega { background: rgba(150,120,220,0.18); color: #B79EE8; }
+.status-entregue { background: rgba(70,160,110,0.18); color: #6FC79A; }
+.status-cancelado { background: rgba(200,90,80,0.18); color: #E8806F; }
 
 /* Drawer */
 .drawer {
@@ -368,12 +405,9 @@ input, textarea { font-family: inherit; }
   <section>
     <h1 class="page-title">Monte seu hambúrguer</h1>
     <div class="category-chips" id="chipsCategoria"></div>
-
     <div class="section-head"><h2>Inclusos no hambúrguer</h2></div>
     <div id="listaInclusos"></div>
-
     <div id="listaIngredientes"></div>
-
     <div class="obs-field">
       <label for="obsText">Observações</label>
       <textarea id="obsText" maxlength="200" placeholder="Ex: sem cebola, ponto da carne bem passado..."></textarea>
@@ -415,20 +449,24 @@ input, textarea { font-family: inherit; }
   </div>
 </footer>
 
-<!-- Modal Login -->
+<!-- Modal Login / Cadastro -->
 <div class="overlay" id="loginOverlay">
   <div class="modal">
     <button class="close-x" data-close="loginOverlay">×</button>
     <h3 id="loginTitle">Entrar</h3>
-    <p class="muted-sm" id="loginSubtitle">Use seu e-mail e senha para acessar.</p>
+    <p class="muted-sm" id="loginSubtitle">Use seu telefone e senha para acessar.</p>
     <form id="loginForm">
       <div class="form-field" id="nomeField" style="display:none;">
         <label for="loginNome">Nome</label>
-        <input id="loginNome" type="text" placeholder="Seu nome">
+        <input id="loginNome" type="text" placeholder="Seu nome" autocomplete="name">
       </div>
-      <div class="form-field">
+      <div class="form-field" id="telefoneField">
+        <label for="loginTelefone">Telefone</label>
+        <input id="loginTelefone" type="tel" placeholder="(11) 99999-9999" autocomplete="tel" required>
+      </div>
+      <div class="form-field" id="emailField" style="display:none;">
         <label for="loginEmail">E-mail</label>
-        <input id="loginEmail" type="email" placeholder="voce@exemplo.com.br" autocomplete="email" required>
+        <input id="loginEmail" type="email" placeholder="voce@exemplo.com.br" autocomplete="email">
       </div>
       <div class="form-field">
         <label for="loginSenha">Senha</label>
@@ -443,24 +481,34 @@ input, textarea { font-family: inherit; }
   </div>
 </div>
 
-<!-- Modal Endereço -->
+<!-- Modal Endereços -->
 <div class="overlay" id="enderecoOverlay">
   <div class="modal">
     <button class="close-x" data-close="enderecoOverlay">×</button>
     <h3>Endereço de entrega</h3>
-    <p class="muted-sm">Informe onde devemos entregar seu pedido.</p>
-    <form id="enderecoForm">
+    <p class="muted-sm">Escolha um endereço salvo ou cadastre um novo.</p>
+
+    <div id="listaEnderecos"></div>
+
+    <button type="button" class="btn-outline" id="btnNovoEndereco">+ Novo endereço</button>
+
+    <div id="formNovoEndereco">
+      <h4>Novo endereço</h4>
+      <div class="form-field">
+        <label for="endRotulo">Rótulo</label>
+        <input id="endRotulo" type="text" placeholder="Casa, Trabalho..." value="Casa">
+      </div>
       <div class="form-field">
         <label for="endCep">CEP</label>
-        <input id="endCep" type="text" placeholder="00000-000" maxlength="9" required>
+        <input id="endCep" type="text" placeholder="00000-000" maxlength="9">
       </div>
       <div class="form-field">
         <label for="endRua">Rua</label>
-        <input id="endRua" type="text" required>
+        <input id="endRua" type="text">
       </div>
       <div class="form-field">
         <label for="endNumero">Número</label>
-        <input id="endNumero" type="text" required>
+        <input id="endNumero" type="text">
       </div>
       <div class="form-field">
         <label for="endComplemento">Complemento</label>
@@ -468,18 +516,22 @@ input, textarea { font-family: inherit; }
       </div>
       <div class="form-field">
         <label for="endBairro">Bairro</label>
-        <input id="endBairro" type="text" required>
+        <input id="endBairro" type="text">
       </div>
       <div class="form-field">
         <label for="endCidade">Cidade</label>
-        <input id="endCidade" type="text" required>
+        <input id="endCidade" type="text">
       </div>
       <div class="form-field">
         <label for="endEstado">Estado</label>
-        <input id="endEstado" type="text" maxlength="2" placeholder="SP" required>
+        <input id="endEstado" type="text" maxlength="2" placeholder="SP">
       </div>
+      <button type="button" class="btn-solid" style="width:100%;" id="btnSalvarEndereco">Salvar endereço</button>
+    </div>
+
+    <form id="enderecoForm">
       <p class="error-msg" id="endError"></p>
-      <button type="submit" class="btn-solid" style="width:100%;">Finalizar pedido</button>
+      <button type="submit" class="btn-solid" style="width:100%; margin-top:16px;">Finalizar pedido</button>
     </form>
   </div>
 </div>
@@ -491,6 +543,20 @@ input, textarea { font-family: inherit; }
     <h3>Pedidos prontos</h3>
     <p class="muted-sm">Escolha um clássico e ajuste do seu jeito.</p>
     <div id="listaReceitas"></div>
+  </div>
+</div>
+
+<!-- Modal Perfil -->
+<div class="overlay" id="perfilOverlay">
+  <div class="modal">
+    <button class="close-x" data-close="perfilOverlay">×</button>
+    <div class="perfil-head">
+      <span class="nome" id="perfilNome">Cliente</span>
+      <span class="tel" id="perfilTelefone"></span>
+    </div>
+    <h4>Últimos pedidos</h4>
+    <ul class="drawer-list" id="listaPedidos"></ul>
+    <button type="button" class="btn-ghost" style="width:100%; margin-top:16px;" id="btnSair">Sair da conta</button>
   </div>
 </div>
 
