@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>montaí — Monte seu hambúrguer</title>
+<title>montaê — Monte seu hambúrguer</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600&family=Jost:wght@400;500;600&display=swap" rel="stylesheet">
@@ -157,7 +157,7 @@ input, textarea { font-family: inherit; }
 .preview-card {
   border: 1px solid rgba(0,0,0,0.08); border-radius: 20px;
   background: linear-gradient(180deg, #F7F6F3 0%, #EDECE8 100%);
-  padding: 24px; overflow: hidden;
+  padding: 24px; overflow: visible;
 }
 .preview-stage {
   position: relative; width: 100%; aspect-ratio: 1/1.15;
@@ -262,12 +262,6 @@ input, textarea { font-family: inherit; }
   background: var(--accent); border-color: var(--accent); color: #0A0A0A;
 }
 .foot-icon-btn.solid:hover { background: var(--accent-text); color: #0A0A0A; }
-.foot-icon-btn .badge {
-  position: absolute; top: -2px; right: -2px; min-width: 16px; height: 16px; padding: 0 4px;
-  border-radius: 999px; background: #2E7D4F; color: #fff;
-  font-size: 0.6rem; font-weight: 600;
-  display: inline-flex; align-items: center; justify-content: center;
-}
 
 .btn-solid, .btn-outline, .btn-ghost {
   padding: 11px 18px; border-radius: 999px; font-size: 0.85rem;
@@ -443,10 +437,22 @@ input, textarea { font-family: inherit; }
 
 /* Responsivo */
 @media (max-width: 899px) {
+  :root { --overlap: 6%; }
+
   .app-main { grid-template-columns: 1fr; gap: 16px; padding: 14px 12px 96px; }
   .preview-col { position: sticky; top: 56px; z-index: 30; background: #0A0A0A; padding-bottom: 6px; }
-  .preview-card { padding: 10px; }
-  .preview-stage { aspect-ratio: auto; height: 38vh; min-height: 170px; }
+  .preview-card { padding: 10px; overflow: visible; }
+  .preview-stage {
+    aspect-ratio: auto;
+    height: auto;
+    min-height: 170px;
+    max-height: 52vh;
+    overflow-y: auto;
+    overflow-x: hidden;
+    align-items: flex-start;
+    padding: 8px 0;
+    -webkit-overflow-scrolling: touch;
+  }
   .stack-burger { width: clamp(150px, 46vw, 210px); }
   .page-title { font-size: 1.5rem; }
   .app-header { height: 56px; padding: 0 12px; }
@@ -466,7 +472,7 @@ input, textarea { font-family: inherit; }
       <path d="M10 31c0 1.5 1 2 2 2h24c1 0 2-.5 2-2" stroke="#D9A24A" stroke-width="1.6" stroke-linecap="round"/>
       <path d="M12 36c0 2 1.5 4 4 4h16c2.5 0 4-2 4-4" stroke="#D9A24A" stroke-width="1.6" stroke-linecap="round"/>
     </svg>
-    <div class="wordmark">monta<span>í</span></div>
+    <div class="wordmark">monta<span>ê</span></div>
   </div>
   <div class="header-actions">
     <button class="menu-btn" id="btnReceitas" title="Menu" aria-label="Menu">
