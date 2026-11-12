@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>montaí — Recebimento de pedidos</title>
+<title>montaê — Recebimento de pedidos</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600&family=Jost:wght@400;500;600&display=swap" rel="stylesheet">
@@ -147,8 +147,14 @@ tbody td:last-child {
   height: 38px; padding: 0 12px; border-radius: 999px;
   border: 1px solid var(--border); background: transparent;
   color: var(--text); font-size: 0.75rem;
+  transition: all 0.2s;
 }
 .btn-mini:hover { border-color: var(--accent); color: var(--accent-text); }
+.btn-mini.ativo {
+  background: rgba(217,162,74,0.18);
+  border-color: var(--accent);
+  color: var(--accent-text);
+}
 
 .empty-state {
   text-align: center; color: var(--text-muted);
@@ -175,9 +181,10 @@ tbody td:last-child {
 <body>
 
 <header class="app-header">
-  <div class="wordmark">monta<span>í</span> · pedidos</div>
+  <div class="wordmark">monta<span>ê</span> · pedidos</div>
   <div class="header-right">
     <span class="live-dot" id="liveStatus">ao vivo</span>
+    <button class="btn-mini" id="btnRetirada">Retirada: desativada</button>
     <button class="btn-mini" id="btnSom">🔔 Som: ligado</button>
   </div>
 </header>
