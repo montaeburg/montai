@@ -23,6 +23,7 @@ let somLigado = true;
 let ultimoPedidoImpresso = null;
 let mapaCamadas = {};
 let retiradaAtiva = false;
+let filtroStatus = 'todos';
 
 // ============ CARREGAR NOMES E CAMADAS ============
 async function carregarNomes() {
@@ -88,7 +89,7 @@ async function carregarRetirada() {
     return;
   }
 
-  retiradaAtiva = data ? String(data.valor).toLowerCase() === 'true' : false;
+  retiradaAtiva = data ? String(data.valor).trim().toLowerCase() === 'true' : false;
   atualizarBotaoRetirada();
 }
 
@@ -149,19 +150,40 @@ async function carregarPedidos() {
 
   pedidos = (data || []).map(p => ({ ...p, perfil: perfis[p.user_id] || {} }));
   renderTabela();
+  atualizarFiltros();
   atualizarKpis();
+}
+
+// ============ FILTROS ============
+function atualizarFiltros() {
+  document.querySelectorAll('.filtro-chip').forEach(btn => {
+    const f = btn.dataset.filtro;
+    const qtd = f === 'todos'
+      ? pedidos.length
+      : pedidos.filter(p => p.status === f).length;
+
+    const label = btn.dataset.label || f;
+    btn.innerHTML = `${label}<span class="contador">${qtd}</span>`;
+    btn.classList.toggle('active', f === filtroStatus);
+  });
 }
 
 // ============ RENDER DA TABELA ============
 function renderTabela() {
   const corpo = $('corpoTabela');
 
-  if (!pedidos.length) {
-    corpo.innerHTML = '<tr><td colspan="8" class="empty-state">Nenhum pedido ainda.</td></tr>';
+  const lista = filtroStatus === 'todos'
+    ? pedidos
+    : pedidos.filter(p => p.status === filtroStatus);
+
+  if (!lista.length) {
+    corpo.innerHTML = `<tr><td colspan="8" class="empty-state">${
+      pedidos.length ? 'Nenhum pedido com este status.' : 'Nenhum pedido ainda.'
+    }</td></tr>`;
     return;
   }
 
-  corpo.innerHTML = pedidos.map(p => {
+  corpo.innerHTML = lista.map(p => {
     const itens = (p.pedido_itens || []).map(i => {
       const extras = ordenarExtras(i.camadas, i.inclusos);
       const nomes = extras.map(e => e.qtd > 1 ? `${e.nome} (${e.qtd})` : e.nome);
@@ -391,6 +413,14 @@ document.addEventListener('change', async (e) => {
   }
 
   sel.className = 'status-select status-' + sel.value;
+});
+
+$('filtrosBar').addEventListener('click', (e) => {
+  const chip = e.target.closest('.filtro-chip');
+  if (!chip) return;
+  filtroStatus = chip.dataset.filtro;
+  renderTabela();
+  atualizarFiltros();
 });
 
 $('btnSom').addEventListener('click', () => {
