@@ -16,21 +16,22 @@ let usuario = null;
 let catAtiva = 'all';
 let modoCadastro = false;
 
-// Endereços
 let enderecos = [];
 let enderecoSelecionado = null;
 
-// Fluxo de finalização
-let etapaCheckout = 'batata'; // 'batata' | 'bebida' | 'endereco'
+let etapaCheckout = 'batata';
 let qtdBatata = 0;
 let bebidaSelecionada = null;
 
-// Configurações
 let precoBase = 12.00;
 let inclusosPadrao = ['alface', 'tomate', 'cebola', 'ketchup', 'maionese'];
 let idsFixo = ['pao-baixo', 'pao-cima', 'carne'];
 let itensNaBase = ['pao-baixo', 'pao-cima', 'carne', 'alface', 'tomate', 'cebola', 'ketchup', 'maionese'];
 let precosReceita = {};
+
+// Retirada no local (controlada pelo Supabase)
+let retiradaAtiva = false;
+let tipoEntrega = 'entrega'; // 'entrega' | 'retirada'
 
 const IMG_VERSION = Date.now();
 
@@ -102,8 +103,9 @@ async function carregarConfiguracoes() {
     if (c.chave === 'inclusos_padrao') inclusosPadrao = c.valor.split(',').map(s => s.trim());
     if (c.chave === 'ids_fixos') idsFixo = c.valor.split(',').map(s => s.trim());
     if (c.chave === 'itens_na_base') itensNaBase = c.valor.split(',').map(s => s.trim());
+    if (c.chave === 'retirada_ativa') retiradaAtiva = String(c.valor).toLowerCase() === 'true';
   });
-  console.log('precoBase:', precoBase, '| itensNaBase:', itensNaBase);
+  console.log('precoBase:', precoBase, '| retiradaAtiva:', retiradaAtiva);
 }
 
 async function carregarPrecosReceitas() {
@@ -162,12 +164,27 @@ function renderEnderecosModal() {
   const host = $('listaEnderecos');
   if (!host) return;
 
+  let html = '';
+
+  // Card de retirada (só aparece se ativo no Supabase)
+  if (retiradaAtiva) {
+    html += `
+      <label class="endereco-card ${tipoEntrega === 'retirada' ? 'selected' : ''}">
+        <input type="radio" name="tipoEntrega" value="retirada" ${tipoEntrega === 'retirada' ? 'checked' : ''}>
+        <div>
+          <div class="endereco-rotulo">Retirada no local</div>
+          <div class="meta">Você busca o pedido no balcão</div>
+        </div>
+      </label>
+    `;
+  }
+
   if (!enderecos.length) {
-    host.innerHTML = '<p class="empty-state">Nenhum endereço salvo. Cadastre o primeiro abaixo.</p>';
+    html += '<p class="empty-state">Nenhum endereço salvo. Cadastre o primeiro abaixo.</p>';
   } else {
-    host.innerHTML = enderecos.map(e => `
-      <label class="endereco-card ${enderecoSelecionado === e.id ? 'selected' : ''}">
-        <input type="radio" name="endSel" value="${e.id}" ${enderecoSelecionado === e.id ? 'checked' : ''}>
+    html += enderecos.map(e => `
+      <label class="endereco-card ${tipoEntrega === 'entrega' && enderecoSelecionado === e.id ? 'selected' : ''}">
+        <input type="radio" name="tipoEntrega" value="${e.id}" ${tipoEntrega === 'entrega' && enderecoSelecionado === e.id ? 'checked' : ''}>
         <div>
           <div class="endereco-rotulo">${esc(e.rotulo || 'Casa')}</div>
           <div class="meta">${esc(e.rua || '')}, ${esc(e.numero || '')} — ${esc(e.bairro || '')}</div>
@@ -176,6 +193,8 @@ function renderEnderecosModal() {
       </label>
     `).join('');
   }
+
+  host.innerHTML = html;
 
   const form = $('formNovoEndereco');
   if (form) form.style.display = enderecos.length ? 'none' : 'block';
@@ -212,6 +231,7 @@ async function salvarEndereco() {
 
   await carregarEnderecos();
   enderecoSelecionado = data.id;
+  tipoEntrega = 'entrega';
   renderEnderecosModal();
   toast('Endereço salvo!');
 }
@@ -221,6 +241,7 @@ function abrirCheckout() {
   etapaCheckout = 'batata';
   qtdBatata = 0;
   bebidaSelecionada = null;
+  tipoEntrega = 'entrega';
   renderEtapa();
   $('checkoutOverlay').classList.add('open');
 }
@@ -601,6 +622,20 @@ function abrirLogin(cadastro = false) {
   $('loginOverlay').classList.add('open');
 }
 
+async function telefoneJaCadastrado(digits) {
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('id')
+    .eq('telefone', digits)
+    .maybeSingle();
+
+  if (error) {
+    console.error('Erro ao verificar telefone:', error.message);
+    return false;
+  }
+  return !!data;
+}
+
 async function processarLogin(e) {
   e.preventDefault();
 
@@ -610,27 +645,46 @@ async function processarLogin(e) {
   const digits = soDigitos(telefone);
   const err = $('loginError');
 
-  if (digits.length < 10) {
-    err.textContent = 'Informe um telefone válido com DDD.';
-    err.classList.add('show');
-    return;
-  }
+  $('loginTelefone').style.borderColor = '';
+  $('loginSenha').style.borderColor = '';
+  if ($('loginNome')) $('loginNome').style.borderColor = '';
 
-  if (senha.length < 6) {
-    err.textContent = 'A senha precisa ter no mínimo 6 caracteres.';
+  if (digits.length < 10) {
+    err.textContent = 'O telefone é obrigatório. Informe com DDD.';
     err.classList.add('show');
+    $('loginTelefone').style.borderColor = '#E8806F';
+    $('loginTelefone').focus();
     return;
   }
 
   if (modoCadastro && !nome) {
     err.textContent = 'Informe seu nome.';
     err.classList.add('show');
+    $('loginNome').style.borderColor = '#E8806F';
+    $('loginNome').focus();
+    return;
+  }
+
+  if (senha.length < 6) {
+    err.textContent = 'A senha precisa ter no mínimo 6 caracteres.';
+    err.classList.add('show');
+    $('loginSenha').style.borderColor = '#E8806F';
+    $('loginSenha').focus();
     return;
   }
 
   const email = emailInterno(digits);
 
   if (modoCadastro) {
+    const existe = await telefoneJaCadastrado(digits);
+    if (existe) {
+      err.textContent = 'Este telefone já está cadastrado. Faça login.';
+      err.classList.add('show');
+      $('loginTelefone').style.borderColor = '#E8806F';
+      $('loginTelefone').focus();
+      return;
+    }
+
     const { data, error } = await supabase.auth.signUp({
       email,
       password: senha,
@@ -638,9 +692,11 @@ async function processarLogin(e) {
     });
 
     if (error) {
-      err.textContent = /already|registered|exists/i.test(error.message)
-        ? 'Este telefone já está cadastrado. Faça login.'
-        : error.message;
+      if (error.code === '23505' || /already|registered|exists|duplicate/i.test(error.message)) {
+        err.textContent = 'Este telefone já está cadastrado. Faça login.';
+      } else {
+        err.textContent = error.message;
+      }
       err.classList.add('show');
       return;
     }
@@ -801,17 +857,23 @@ async function finalizarPedido(e) {
   e.preventDefault();
   if (!usuario) { $('checkoutOverlay').classList.remove('open'); abrirLogin(); return; }
   if (!carrinho.itens.length) { toast('Carrinho vazio.'); return; }
-  if (!enderecoSelecionado) { toast('Escolha ou cadastre um endereço.'); return; }
 
-  const end = enderecos.find(x => x.id === enderecoSelecionado);
-  if (!end) { toast('Endereço inválido.'); return; }
+  let endereco = null;
 
-  const endereco = {
-    rotulo: end.rotulo,
-    cep: end.cep, rua: end.rua, numero: end.numero,
-    complemento: end.complemento, bairro: end.bairro,
-    cidade: end.cidade, estado: end.estado
-  };
+  if (tipoEntrega === 'retirada') {
+    endereco = { rotulo: 'Retirada no local', tipo: 'retirada' };
+  } else {
+    if (!enderecoSelecionado) { toast('Escolha ou cadastre um endereço.'); return; }
+    const end = enderecos.find(x => x.id === enderecoSelecionado);
+    if (!end) { toast('Endereço inválido.'); return; }
+    endereco = {
+      rotulo: end.rotulo,
+      cep: end.cep, rua: end.rua, numero: end.numero,
+      complemento: end.complemento, bairro: end.bairro,
+      cidade: end.cidade, estado: end.estado,
+      tipo: 'entrega'
+    };
+  }
 
   const subtotal = carrinho.itens.reduce((s, i) => s + i.preco, 0);
 
@@ -891,7 +953,6 @@ function configurarEventos() {
   $('btnAdicionar').addEventListener('click', () => adicionarAoCarrinho());
   $('btnSalvar').addEventListener('click', salvarHamburguer);
 
-  // Checkout em etapas
   $('checkout').addEventListener('click', async () => {
     if (!usuario) { abrirLogin(); return; }
     if (!carrinho.itens.length && !Object.keys(montagem.camadas).length) {
@@ -903,7 +964,6 @@ function configurarEventos() {
     abrirCheckout();
   });
 
-  // Batata
   if ($('listaBatata')) {
     $('listaBatata').addEventListener('click', e => {
       const inc = e.target.closest('[data-bat-inc]');
@@ -926,7 +986,6 @@ function configurarEventos() {
   if ($('btnBatataContinuar')) $('btnBatataContinuar').addEventListener('click', confirmarBatata);
   if ($('btnBatataPular')) $('btnBatataPular').addEventListener('click', () => { qtdBatata = 0; irParaEtapa('bebida'); });
 
-  // Bebida
   if ($('listaBebidas')) {
     $('listaBebidas').addEventListener('change', e => {
       const r = e.target.closest('input[name="bebSel"]');
@@ -937,15 +996,21 @@ function configurarEventos() {
   if ($('btnBebidaContinuar')) $('btnBebidaContinuar').addEventListener('click', confirmarBebida);
   if ($('btnBebidaPular')) $('btnBebidaPular').addEventListener('click', () => { bebidaSelecionada = null; irParaEtapa('endereco'); });
 
-  // Voltar
   if ($('btnVoltarBebida')) $('btnVoltarBebida').addEventListener('click', () => irParaEtapa('batata'));
   if ($('btnVoltarEndereco')) $('btnVoltarEndereco').addEventListener('click', () => irParaEtapa('bebida'));
 
-  // Endereços
+  // Seleção de entrega ou retirada
   if ($('listaEnderecos')) {
     $('listaEnderecos').addEventListener('change', e => {
-      const r = e.target.closest('input[name="endSel"]');
-      if (r) { enderecoSelecionado = r.value; renderEnderecosModal(); }
+      const r = e.target.closest('input[name="tipoEntrega"]');
+      if (!r) return;
+      if (r.value === 'retirada') {
+        tipoEntrega = 'retirada';
+      } else {
+        tipoEntrega = 'entrega';
+        enderecoSelecionado = r.value;
+      }
+      renderEnderecosModal();
     });
   }
 
@@ -957,17 +1022,14 @@ function configurarEventos() {
   }
 
   if ($('btnSalvarEndereco')) $('btnSalvarEndereco').addEventListener('click', salvarEndereco);
-
   if ($('enderecoForm')) $('enderecoForm').addEventListener('submit', finalizarPedido);
 
-  // Login
   $('loginForm').addEventListener('submit', processarLogin);
   $('toggleModo').addEventListener('click', e => {
     e.preventDefault();
     abrirLogin(!modoCadastro);
   });
 
-  // Menu / receitas
   $('btnReceitas').addEventListener('click', () => {
     renderReceitas();
     $('receitasOverlay').classList.add('open');
@@ -977,14 +1039,12 @@ function configurarEventos() {
     if (b) carregarReceita(b.dataset.receita);
   });
 
-  // Carrinho
   $('btnCarrinho').addEventListener('click', () => {
     renderCarrinho();
     $('carrinhoDrawer').classList.add('open');
     $('drawerBackdrop').classList.add('open');
   });
 
-  // Salvos
   $('btnSalvos').addEventListener('click', () => {
     renderSalvos();
     $('salvosDrawer').classList.add('open');
@@ -1009,7 +1069,6 @@ function configurarEventos() {
     }
   });
 
-  // Perfil
   $('btnPerfil').addEventListener('click', abrirPerfil);
 
   const btnSair = $('btnSair');
@@ -1017,22 +1076,15 @@ function configurarEventos() {
     btnSair.addEventListener('click', async (e) => {
       e.preventDefault();
       e.stopPropagation();
-      try {
-        await supabase.auth.signOut();
-      } catch (err) {
-        console.error('Erro ao sair:', err);
-      }
+      try { await supabase.auth.signOut(); } catch (err) { console.error('Erro ao sair:', err); }
       usuario = null;
       enderecos = [];
       enderecoSelecionado = null;
       $('perfilOverlay').classList.remove('open');
       toast('Você saiu');
     });
-  } else {
-    console.warn('btnSair não encontrado no DOM');
   }
 
-  // Fechar modais
   document.querySelectorAll('[data-close]').forEach(b => {
     b.addEventListener('click', () => $(b.dataset.close).classList.remove('open'));
   });
@@ -1047,7 +1099,6 @@ function configurarEventos() {
     $('drawerBackdrop').classList.remove('open');
   });
 
-  // CEP
   document.querySelectorAll('input[id$="Cep"], #endCep').forEach(inp => {
     inp.addEventListener('blur', async e => {
       const cep = e.target.value.replace(/\D/g, '');
