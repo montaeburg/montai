@@ -60,6 +60,18 @@ input, textarea { font-family: inherit; }
   display: inline-flex; align-items: center; justify-content: center;
 }
 
+/* Botão MENU com texto */
+.menu-btn {
+  height: 40px; padding: 0 16px; border-radius: 999px;
+  display: inline-flex; align-items: center; gap: 8px;
+  background: transparent; border: 1px solid rgba(217,162,74,0.25);
+  color: #F2EDE4; font-size: 0.78rem; font-weight: 500;
+  letter-spacing: 0.1em; text-transform: uppercase;
+  transition: all 0.2s;
+}
+.menu-btn:hover { background: rgba(217,162,74,0.12); color: var(--accent-text); }
+.menu-btn svg { width: 18px; height: 18px; }
+
 /* Layout */
 .app-main {
   margin-top: 64px; display: grid;
@@ -80,27 +92,43 @@ input, textarea { font-family: inherit; }
 }
 .chip:hover, .chip.active { background: var(--accent); color: #0A0A0A; border-color: var(--accent); }
 
+/* Inclusos como chips/pílulas */
+.inclusos-chips {
+  display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 4px;
+}
+.incluso-chip {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 8px 14px; border-radius: 999px;
+  border: 1px solid var(--border); background: transparent;
+  color: var(--text); font-size: 0.82rem;
+  transition: all 0.2s; user-select: none;
+}
+.incluso-chip:hover { border-color: var(--accent); }
+.incluso-chip.selected {
+  background: var(--accent); color: #0A0A0A; border-color: var(--accent);
+  font-weight: 500;
+}
+.incluso-chip .chip-check {
+  width: 14px; height: 14px; flex-shrink: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+.incluso-chip .chip-check svg {
+  width: 12px; height: 12px; opacity: 0;
+  transition: opacity 0.15s;
+}
+.incluso-chip.selected .chip-check svg { opacity: 1; }
+.incluso-chip input { position: absolute; opacity: 0; pointer-events: none; }
+
 /* Ingredientes */
-.ingredient-row, .incluso-row {
+.ingredient-row {
   display: flex; align-items: center; justify-content: space-between; gap: 10px;
   padding: 8px 12px; border: 1px solid rgba(255,255,255,0.06);
   border-radius: var(--radius); background: var(--surface);
   margin-bottom: 6px; transition: all 0.25s;
 }
-.ingredient-row:hover, .incluso-row:hover {
+.ingredient-row:hover {
   background: var(--surface-2); border-color: rgba(217,162,74,0.35);
 }
-.incluso-row { cursor: pointer; user-select: none; }
-.incluso-row input { position: absolute; opacity: 0; pointer-events: none; }
-.check-box {
-  width: 20px; height: 20px; flex-shrink: 0; border: 1px solid var(--accent);
-  border-radius: 5px; display: inline-flex; align-items: center; justify-content: center;
-  transition: background 0.2s;
-}
-.check-box svg { width: 12px; height: 12px; opacity: 0; transition: opacity 0.2s; }
-.incluso-row input:checked + .check-box { background: var(--accent); }
-.incluso-row input:checked + .check-box svg { opacity: 1; }
-.incluso-label { flex: 1; font-size: 0.875rem; font-weight: 500; }
 .ingredient-info { display: flex; flex-direction: column; min-width: 0; }
 .ingredient-name { font-size: 0.875rem; font-weight: 500; }
 .ingredient-desc { font-size: 0.75rem; color: var(--text-muted); }
@@ -220,6 +248,27 @@ input, textarea { font-family: inherit; }
   color: var(--accent-text); font-variant-numeric: tabular-nums;
 }
 .footer-actions { display: flex; gap: 8px; align-items: center; }
+
+/* Botões de ícone do rodapé */
+.foot-icon-btn {
+  width: 44px; height: 44px; padding: 0; border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: transparent; border: 1px solid var(--border);
+  color: var(--text); transition: all 0.2s; position: relative;
+}
+.foot-icon-btn:hover { border-color: var(--accent); color: var(--accent-text); background: rgba(217,162,74,0.1); }
+.foot-icon-btn svg { width: 20px; height: 20px; }
+.foot-icon-btn.solid {
+  background: var(--accent); border-color: var(--accent); color: #0A0A0A;
+}
+.foot-icon-btn.solid:hover { background: var(--accent-text); color: #0A0A0A; }
+.foot-icon-btn .badge {
+  position: absolute; top: -2px; right: -2px; min-width: 16px; height: 16px; padding: 0 4px;
+  border-radius: 999px; background: #2E7D4F; color: #fff;
+  font-size: 0.6rem; font-weight: 600;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+
 .btn-solid, .btn-outline, .btn-ghost {
   padding: 11px 18px; border-radius: 999px; font-size: 0.85rem;
   border: 1px solid var(--border); transition: all 0.2s;
@@ -402,7 +451,8 @@ input, textarea { font-family: inherit; }
   .page-title { font-size: 1.5rem; }
   .app-header { height: 56px; padding: 0 12px; }
   .app-main { margin-top: 56px; }
-  .footer-actions .btn-outline span { display: none; }
+  .menu-btn { padding: 0 12px; font-size: 0.72rem; }
+  .menu-btn span { display: none; }
 }
 </style>
 </head>
@@ -419,10 +469,11 @@ input, textarea { font-family: inherit; }
     <div class="wordmark">monta<span>ê</span></div>
   </div>
   <div class="header-actions">
-    <button class="icon-btn" id="btnReceitas" title="Pedidos prontos" aria-label="Pedidos prontos">
+    <button class="menu-btn" id="btnReceitas" title="Menu" aria-label="Menu">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
         <path d="M4 5h7M4 10h7M4 15h7M4 20h7"/><path d="M15 4l5 3-5 3z"/><path d="M15 13h5M15 17h5"/>
       </svg>
+      <span>Menu</span>
     </button>
     <button class="icon-btn" id="btnSalvos" title="Hambúrgueres salvos" aria-label="Hambúrgueres salvos">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round">
@@ -449,7 +500,7 @@ input, textarea { font-family: inherit; }
     <h1 class="page-title">Monte seu hambúrguer</h1>
     <div class="category-chips" id="chipsCategoria"></div>
     <div class="section-head"><h2>Inclusos no hambúrguer</h2></div>
-    <div id="listaInclusos"></div>
+    <div class="inclusos-chips" id="listaInclusos"></div>
     <div id="listaIngredientes"></div>
     <div class="obs-field">
       <label for="obsText">Observações</label>
@@ -485,8 +536,18 @@ input, textarea { font-family: inherit; }
       <div class="value" id="footTotal">R$ 0,00</div>
     </div>
     <div class="footer-actions">
-      <button class="btn-outline" id="btnSalvar">Salvar</button>
-      <button class="btn-solid" id="btnAdicionar">Adicionar</button>
+      <button class="foot-icon-btn" id="btnSalvar" title="Salvar montagem" aria-label="Salvar montagem">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round">
+          <path d="M6 3h12v18l-6-4-6 4z"/>
+        </svg>
+      </button>
+      <button class="foot-icon-btn solid" id="btnAdicionar" title="Adicionar ao carrinho" aria-label="Adicionar ao carrinho">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 4h2l2.4 11h11.2L21 7H7"/>
+          <circle cx="9" cy="20" r="1.4"/><circle cx="17" cy="20" r="1.4"/>
+          <path d="M12 8v5M9.5 10.5h5"/>
+        </svg>
+      </button>
       <button class="btn-ghost" id="checkout">Concluir</button>
     </div>
   </div>
@@ -618,11 +679,11 @@ input, textarea { font-family: inherit; }
   </div>
 </div>
 
-<!-- Modal Receitas -->
+<!-- Modal Menu (receitas) -->
 <div class="overlay" id="receitasOverlay">
   <div class="modal" style="max-width:560px;">
     <button class="close-x" data-close="receitasOverlay">×</button>
-    <h3>Pedidos prontos</h3>
+    <h3>Menu</h3>
     <p class="muted-sm">Escolha um clássico e ajuste do seu jeito.</p>
     <div id="listaReceitas"></div>
   </div>
