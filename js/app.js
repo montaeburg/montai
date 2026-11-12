@@ -781,7 +781,7 @@ function adicionarAoCarrinho(nome) {
     return;
   }
   carrinho.itens.push({
-    nome: nome || 'Meu montaê',
+    nome: nome || 'Meu montaí',
     tipo: 'montagem',
     camadas: { ...montagem.camadas },
     inclusos: { ...montagem.inclusos },
@@ -797,7 +797,7 @@ function adicionarAoCarrinho(nome) {
 async function salvarHamburguer() {
   if (!usuario) { abrirLogin(); return; }
   if (!Object.keys(montagem.camadas).length) { toast('Monte algo antes de salvar.'); return; }
-  const nome = prompt('Nome do hambúrguer:', 'Meu montaê');
+  const nome = prompt('Nome do hambúrguer:', 'Meu montaí');
   if (!nome) return;
 
   const { error } = await supabase.from('hamburgueres_salvos').insert({
@@ -1127,7 +1127,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     await carregarEnderecos();
     renderTudo();
     configurarEventos();
-    console.log('montaê iniciado com sucesso');
+    console.log('montaí iniciado com sucesso');
   } catch (err) {
     console.error('ERRO na inicialização:', err);
   }
