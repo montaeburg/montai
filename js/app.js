@@ -17,11 +17,14 @@ let catAtiva = 'all';
 let modoCadastro = false;
 
 // Configurações vindas do banco
-let precoBase = 4.00;
+let precoBase = 12.00;
 let inclusosPadrao = ['alface', 'tomate', 'cebola', 'ketchup', 'maionese'];
 let idsFixo = ['pao-baixo', 'pao-cima', 'carne'];
 
-// Cache de preços das receitas (calculado a partir de receita_itens)
+// Itens que JÁ estão incluídos no preço base — não devem ser somados de novo
+let itensNaBase = ['pao-baixo', 'pao-cima', 'carne', 'alface', 'tomate', 'cebola', 'ketchup', 'maionese'];
+
+// Cache de preços das receitas (só os adicionais)
 let precosReceita = {};
 
 // Versão para cache busting das imagens
@@ -90,15 +93,16 @@ async function carregarConfiguracoes() {
     if (c.chave === 'preco_base') precoBase = Number(c.valor);
     if (c.chave === 'inclusos_padrao') inclusosPadrao = c.valor.split(',').map(s => s.trim());
     if (c.chave === 'ids_fixos') idsFixo = c.valor.split(',').map(s => s.trim());
+    if (c.chave === 'itens_na_base') itensNaBase = c.valor.split(',').map(s => s.trim());
   });
-  console.log('precoBase:', precoBase, '| inclusosPadrao:', inclusosPadrao);
+  console.log('precoBase:', precoBase, '| itensNaBase:', itensNaBase);
 }
 
-// Calcula o preço de cada receita somando os ingredientes
+// Calcula o preço de cada receita somando APENAS os itens que não estão na base
 async function carregarPrecosReceitas() {
   const { data, error } = await supabase
     .from('receita_itens')
-    .select('receita_id, ingrediente_id, quantidade');
+    .select('receita_id, ingrediente_id, incluso_id, quantidade');
 
   if (error) {
     console.error('ERRO em receita_itens:', error.message);
@@ -109,14 +113,20 @@ async function carregarPrecosReceitas() {
   catalogo.ingredientes.forEach(i => { precoIng[i.id] = Number(i.preco) || 0; });
 
   precosReceita = {};
+
   (data || []).forEach(it => {
     if (!it.ingrediente_id) return;
+
+    // Ignora o que já está no preço base
+    if (itensNaBase.includes(it.ingrediente_id)) return;
+
     const preco = precoIng[it.ingrediente_id] || 0;
+    const qtd = Number(it.quantidade) || 1;
     precosReceita[it.receita_id] =
-      (precosReceita[it.receita_id] || 0) + preco * (it.quantidade || 1);
+      (precosReceita[it.receita_id] || 0) + preco * qtd;
   });
 
-  console.log('precosReceita:', precosReceita);
+  console.log('precosReceita (só adicionais):', precosReceita);
 }
 
 function precoReceita(id) {
@@ -169,7 +179,8 @@ function setQtd(id, qtd) {
 function precoMontagem() {
   let total = precoBase;
   Object.entries(montagem.camadas).forEach(([id, q]) => {
-    if (id === 'pao-baixo' || id === 'pao-cima') return; // pão está no preço base
+    // Itens que já estão na base não são cobrados de novo
+    if (itensNaBase.includes(id)) return;
     const ing = catalogo.ingredientes.find(i => i.id === id);
     if (ing) total += Number(ing.preco) * q;
   });
