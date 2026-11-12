@@ -16,25 +16,24 @@ let usuario = null;
 let catAtiva = 'all';
 let modoCadastro = false;
 
-// Endereços do usuário
+// Endereços
 let enderecos = [];
 let enderecoSelecionado = null;
 
-// Configurações vindas do banco
+// Fluxo de finalização
+let etapaCheckout = 'batata'; // 'batata' | 'bebida' | 'endereco'
+let qtdBatata = 0;
+let bebidaSelecionada = null;
+
+// Configurações
 let precoBase = 12.00;
 let inclusosPadrao = ['alface', 'tomate', 'cebola', 'ketchup', 'maionese'];
 let idsFixo = ['pao-baixo', 'pao-cima', 'carne'];
-
-// Itens que JÁ estão incluídos no preço base — não devem ser somados de novo
 let itensNaBase = ['pao-baixo', 'pao-cima', 'carne', 'alface', 'tomate', 'cebola', 'ketchup', 'maionese'];
-
-// Cache de preços das receitas (só os adicionais)
 let precosReceita = {};
 
-// Versão para cache busting das imagens
 const IMG_VERSION = Date.now();
 
-// Ordem visual das camadas no hambúrguer
 const LAYER_ORDER = [
   'bun-bottom', 'ketchup', 'maionese', 'molho-especial',
   'lettuce', 'tomato', 'onion',
@@ -47,13 +46,11 @@ const $ = (id) => document.getElementById(id);
 const fmt = (v) => 'R$ ' + Number(v).toFixed(2).replace('.', ',');
 const esc = (s) => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
-// Adiciona versão na URL da imagem para furar o cache
 function imgUrl(url) {
   if (!url) return '';
   return url + (url.includes('?') ? '&' : '?') + 'v=' + IMG_VERSION;
 }
 
-// Gera e-mail interno a partir do telefone — o cliente nunca vê
 function emailInterno(telefone) {
   const digits = String(telefone).replace(/\D/g, '');
   return `${digits}@montae.local`;
@@ -99,10 +96,7 @@ async function carregarCatalogo() {
 
 async function carregarConfiguracoes() {
   const { data, error } = await supabase.from('configuracoes').select('*');
-  if (error) {
-    console.error('ERRO em configuracoes:', error.message);
-    return;
-  }
+  if (error) { console.error('ERRO em configuracoes:', error.message); return; }
   (data || []).forEach(c => {
     if (c.chave === 'preco_base') precoBase = Number(c.valor);
     if (c.chave === 'inclusos_padrao') inclusosPadrao = c.valor.split(',').map(s => s.trim());
@@ -112,16 +106,12 @@ async function carregarConfiguracoes() {
   console.log('precoBase:', precoBase, '| itensNaBase:', itensNaBase);
 }
 
-// Calcula o preço de cada receita somando APENAS os itens que não estão na base
 async function carregarPrecosReceitas() {
   const { data, error } = await supabase
     .from('receita_itens')
     .select('receita_id, ingrediente_id, incluso_id, quantidade');
 
-  if (error) {
-    console.error('ERRO em receita_itens:', error.message);
-    return;
-  }
+  if (error) { console.error('ERRO em receita_itens:', error.message); return; }
 
   const precoIng = {};
   catalogo.ingredientes.forEach(i => { precoIng[i.id] = Number(i.preco) || 0; });
@@ -131,11 +121,9 @@ async function carregarPrecosReceitas() {
   (data || []).forEach(it => {
     if (!it.ingrediente_id) return;
     if (itensNaBase.includes(it.ingrediente_id)) return;
-
     const preco = precoIng[it.ingrediente_id] || 0;
     const qtd = Number(it.quantidade) || 1;
-    precosReceita[it.receita_id] =
-      (precosReceita[it.receita_id] || 0) + preco * qtd;
+    precosReceita[it.receita_id] = (precosReceita[it.receita_id] || 0) + preco * qtd;
   });
 
   console.log('precosReceita (só adicionais):', precosReceita);
@@ -196,11 +184,6 @@ function renderEnderecosModal() {
   if (btnNovo) btnNovo.style.display = enderecos.length ? 'inline-flex' : 'none';
 }
 
-function abrirEndereco() {
-  renderEnderecosModal();
-  $('enderecoOverlay').classList.add('open');
-}
-
 async function salvarEndereco() {
   if (!usuario) { abrirLogin(); return; }
 
@@ -219,14 +202,9 @@ async function salvarEndereco() {
 
   const { data, error } = await supabase.from('enderecos').insert({
     user_id: usuario.id,
-    rotulo,
-    cep,
-    rua,
-    numero,
+    rotulo, cep, rua, numero,
     complemento: ($('endComplemento')?.value || '').trim(),
-    bairro,
-    cidade,
-    estado,
+    bairro, cidade, estado,
     principal: enderecos.length === 0
   }).select().single();
 
@@ -238,16 +216,136 @@ async function salvarEndereco() {
   toast('Endereço salvo!');
 }
 
-// ============ MONTAGEM ============
-function iniciarMontagem() {
-  montagem.camadas = {};
-  montagem.inclusos = {};
-  catalogo.inclusos.forEach(i => { montagem.inclusos[i.id] = false; });
-  montagem.observacao = '';
-  $('obsText').value = '';
-  $('obsCounter').textContent = '0/200';
+// ============ CHECKOUT EM ETAPAS ============
+function abrirCheckout() {
+  etapaCheckout = 'batata';
+  qtdBatata = 0;
+  bebidaSelecionada = null;
+  renderEtapa();
+  $('checkoutOverlay').classList.add('open');
 }
 
+function renderEtapa() {
+  const passos = ['batata', 'bebida', 'endereco'];
+  passos.forEach(p => {
+    const el = $('etapa' + p.charAt(0).toUpperCase() + p.slice(1));
+    if (el) el.style.display = (p === etapaCheckout) ? 'block' : 'none';
+  });
+
+  // Indicador de progresso
+  const idx = passos.indexOf(etapaCheckout);
+  document.querySelectorAll('.step-dot').forEach((d, i) => {
+    d.classList.toggle('active', i === idx);
+    d.classList.toggle('done', i < idx);
+  });
+
+  if (etapaCheckout === 'batata') renderBatata();
+  if (etapaCheckout === 'bebida') renderBebidas();
+  if (etapaCheckout === 'endereco') renderEnderecosModal();
+}
+
+function renderBatata() {
+  const host = $('listaBatata');
+  if (!host) return;
+
+  if (!catalogo.extras.length) {
+    host.innerHTML = '<p class="empty-state">Nenhum adicional disponível.</p>';
+    return;
+  }
+
+  host.innerHTML = catalogo.extras.map(x => `
+    <div class="upsell-card">
+      ${x.imagem_url ? `<img src="${imgUrl(x.imagem_url)}" alt="${esc(x.nome)}" class="upsell-img">` : ''}
+      <div class="upsell-info">
+        <div class="upsell-nome">${esc(x.nome)}</div>
+        ${x.descricao ? `<div class="upsell-desc">${esc(x.descricao)}</div>` : ''}
+        <div class="upsell-preco">${fmt(x.preco)}</div>
+      </div>
+      <div class="upsell-ctrl">
+        <div class="qty-control">
+          <button type="button" data-bat-dec="${x.id}">−</button>
+          <span id="batQtd-${x.id}">0</span>
+          <button type="button" data-bat-inc="${x.id}">+</button>
+        </div>
+      </div>
+    </div>
+  `).join('');
+
+  atualizarQtdBatata();
+}
+
+function atualizarQtdBatata() {
+  const total = qtdBatata;
+  const label = $('batataTotal');
+  if (label) label.textContent = total > 0 ? `${total} porção${total > 1 ? 'ões' : ''}` : '';
+}
+
+function renderBebidas() {
+  const host = $('listaBebidas');
+  if (!host) return;
+
+  if (!catalogo.bebidas.length) {
+    host.innerHTML = '<p class="empty-state">Nenhuma bebida disponível.</p>';
+    return;
+  }
+
+  host.innerHTML = catalogo.bebidas.map(b => `
+    <label class="bebida-card ${bebidaSelecionada === b.id ? 'selected' : ''}">
+      <input type="radio" name="bebSel" value="${b.id}" ${bebidaSelecionada === b.id ? 'checked' : ''}>
+      ${b.imagem_url ? `<img src="${imgUrl(b.imagem_url)}" alt="${esc(b.nome)}" class="bebida-img">` : ''}
+      <div class="bebida-info">
+        <div class="bebida-nome">${esc(b.nome)}</div>
+        ${b.tamanho ? `<div class="bebida-tam">${esc(b.tamanho)}</div>` : ''}
+        <div class="bebida-preco">${fmt(b.preco)}</div>
+      </div>
+    </label>
+  `).join('');
+}
+
+function irParaEtapa(etapa) {
+  etapaCheckout = etapa;
+  renderEtapa();
+}
+
+function confirmarBatata() {
+  if (qtdBatata > 0) {
+    const batata = catalogo.extras[0];
+    if (batata) {
+      carrinho.itens.push({
+        nome: batata.nome,
+        tipo: 'adicional',
+        camadas: {},
+        inclusos: {},
+        observacao: '',
+        preco: Number(batata.preco) * qtdBatata,
+        quantidade: qtdBatata
+      });
+      renderCarrinho();
+    }
+  }
+  irParaEtapa('bebida');
+}
+
+function confirmarBebida() {
+  if (bebidaSelecionada) {
+    const b = catalogo.bebidas.find(x => x.id === bebidaSelecionada);
+    if (b) {
+      carrinho.itens.push({
+        nome: b.nome + (b.tamanho ? ` ${b.tamanho}` : ''),
+        tipo: 'bebida',
+        camadas: {},
+        inclusos: {},
+        observacao: '',
+        preco: Number(b.preco),
+        quantidade: 1
+      });
+      renderCarrinho();
+    }
+  }
+  irParaEtapa('endereco');
+}
+
+// ============ MONTAGEM ============
 function montagemPadrao() {
   montagem.camadas = {};
   montagem.inclusos = {};
@@ -417,7 +515,9 @@ function renderCarrinho() {
       <li class="drawer-item">
         <div>
           <div>${esc(i.nome)}</div>
-          <div class="meta">${Object.values(i.camadas).reduce((s, q) => s + q, 0)} complementos</div>
+          <div class="meta">${i.tipo === 'montagem'
+            ? Object.values(i.camadas).reduce((s, q) => s + q, 0) + ' complementos'
+            : (i.quantidade > 1 ? i.quantidade + '×' : 'Item extra')}</div>
         </div>
         <div style="display:flex; align-items:center; gap:8px;">
           <span>${fmt(i.preco)}</span>
@@ -624,10 +724,12 @@ function adicionarAoCarrinho(nome) {
   }
   carrinho.itens.push({
     nome: nome || 'Meu montaê',
+    tipo: 'montagem',
     camadas: { ...montagem.camadas },
     inclusos: { ...montagem.inclusos },
     observacao: montagem.observacao,
-    preco: precoMontagem()
+    preco: precoMontagem(),
+    quantidade: 1
   });
   montagemPadrao();
   renderTudo();
@@ -695,7 +797,7 @@ async function carregarSalvo(id) {
 
 async function finalizarPedido(e) {
   e.preventDefault();
-  if (!usuario) { $('enderecoOverlay').classList.remove('open'); abrirLogin(); return; }
+  if (!usuario) { $('checkoutOverlay').classList.remove('open'); abrirLogin(); return; }
   if (!carrinho.itens.length) { toast('Carrinho vazio.'); return; }
   if (!enderecoSelecionado) { toast('Escolha ou cadastre um endereço.'); return; }
 
@@ -704,13 +806,9 @@ async function finalizarPedido(e) {
 
   const endereco = {
     rotulo: end.rotulo,
-    cep: end.cep,
-    rua: end.rua,
-    numero: end.numero,
-    complemento: end.complemento,
-    bairro: end.bairro,
-    cidade: end.cidade,
-    estado: end.estado
+    cep: end.cep, rua: end.rua, numero: end.numero,
+    complemento: end.complemento, bairro: end.bairro,
+    cidade: end.cidade, estado: end.estado
   };
 
   const subtotal = carrinho.itens.reduce((s, i) => s + i.preco, 0);
@@ -731,13 +829,13 @@ async function finalizarPedido(e) {
 
   const itens = carrinho.itens.map(i => ({
     pedido_id: pedido.id,
-    tipo: 'montagem',
+    tipo: i.tipo || 'montagem',
     nome: i.nome,
-    quantidade: 1,
-    preco_unitario: i.preco,
-    camadas: i.camadas,
-    inclusos: i.inclusos,
-    observacao: i.observacao
+    quantidade: i.quantidade || 1,
+    preco_unitario: i.quantidade > 1 ? i.preco / i.quantidade : i.preco,
+    camadas: i.camadas || null,
+    inclusos: i.inclusos || null,
+    observacao: i.observacao || null
   }));
 
   const { error: errItens } = await supabase.from('pedido_itens').insert(itens);
@@ -747,7 +845,7 @@ async function finalizarPedido(e) {
   }
 
   carrinho.itens = [];
-  $('enderecoOverlay').classList.remove('open');
+  $('checkoutOverlay').classList.remove('open');
   if ($('enderecoForm')) $('enderecoForm').reset();
   renderCarrinho();
   toast('Pedido realizado!');
@@ -789,6 +887,7 @@ function configurarEventos() {
   $('btnAdicionar').addEventListener('click', () => adicionarAoCarrinho());
   $('btnSalvar').addEventListener('click', salvarHamburguer);
 
+  // Checkout em etapas
   $('checkout').addEventListener('click', async () => {
     if (!usuario) { abrirLogin(); return; }
     if (!carrinho.itens.length && !Object.keys(montagem.camadas).length) {
@@ -797,14 +896,46 @@ function configurarEventos() {
     }
     if (Object.keys(montagem.camadas).length) adicionarAoCarrinho();
     await carregarEnderecos();
-    abrirEndereco();
+    abrirCheckout();
   });
 
-  $('loginForm').addEventListener('submit', processarLogin);
-  $('toggleModo').addEventListener('click', e => {
-    e.preventDefault();
-    abrirLogin(!modoCadastro);
-  });
+  // Batata
+  if ($('listaBatata')) {
+    $('listaBatata').addEventListener('click', e => {
+      const inc = e.target.closest('[data-bat-inc]');
+      const dec = e.target.closest('[data-bat-dec]');
+      if (inc) {
+        qtdBatata++;
+        const el = $('batQtd-' + inc.dataset.batInc);
+        if (el) el.textContent = qtdBatata;
+        atualizarQtdBatata();
+      }
+      if (dec) {
+        if (qtdBatata > 0) qtdBatata--;
+        const el = $('batQtd-' + dec.dataset.batDec);
+        if (el) el.textContent = qtdBatata;
+        atualizarQtdBatata();
+      }
+    });
+  }
+
+  if ($('btnBatataContinuar')) $('btnBatataContinuar').addEventListener('click', confirmarBatata);
+  if ($('btnBatataPular')) $('btnBatataPular').addEventListener('click', () => { qtdBatata = 0; irParaEtapa('bebida'); });
+
+  // Bebida
+  if ($('listaBebidas')) {
+    $('listaBebidas').addEventListener('change', e => {
+      const r = e.target.closest('input[name="bebSel"]');
+      if (r) { bebidaSelecionada = r.value; renderBebidas(); }
+    });
+  }
+
+  if ($('btnBebidaContinuar')) $('btnBebidaContinuar').addEventListener('click', confirmarBebida);
+  if ($('btnBebidaPular')) $('btnBebidaPular').addEventListener('click', () => { bebidaSelecionada = null; irParaEtapa('endereco'); });
+
+  // Voltar
+  if ($('btnVoltarBebida')) $('btnVoltarBebida').addEventListener('click', () => irParaEtapa('batata'));
+  if ($('btnVoltarEndereco')) $('btnVoltarEndereco').addEventListener('click', () => irParaEtapa('bebida'));
 
   // Endereços
   if ($('listaEnderecos')) {
@@ -821,14 +952,18 @@ function configurarEventos() {
     });
   }
 
-  if ($('btnSalvarEndereco')) {
-    $('btnSalvarEndereco').addEventListener('click', salvarEndereco);
-  }
+  if ($('btnSalvarEndereco')) $('btnSalvarEndereco').addEventListener('click', salvarEndereco);
 
-  if ($('enderecoForm')) {
-    $('enderecoForm').addEventListener('submit', finalizarPedido);
-  }
+  if ($('enderecoForm')) $('enderecoForm').addEventListener('submit', finalizarPedido);
 
+  // Login
+  $('loginForm').addEventListener('submit', processarLogin);
+  $('toggleModo').addEventListener('click', e => {
+    e.preventDefault();
+    abrirLogin(!modoCadastro);
+  });
+
+  // Receitas
   $('btnReceitas').addEventListener('click', () => {
     renderReceitas();
     $('receitasOverlay').classList.add('open');
@@ -838,11 +973,14 @@ function configurarEventos() {
     if (b) carregarReceita(b.dataset.receita);
   });
 
+  // Carrinho
   $('btnCarrinho').addEventListener('click', () => {
     renderCarrinho();
     $('carrinhoDrawer').classList.add('open');
     $('drawerBackdrop').classList.add('open');
   });
+
+  // Salvos
   $('btnSalvos').addEventListener('click', () => {
     renderSalvos();
     $('salvosDrawer').classList.add('open');
@@ -858,6 +996,7 @@ function configurarEventos() {
       toast('Removido');
     }
   });
+
   $('listaCarrinho').addEventListener('click', e => {
     const rm = e.target.closest('[data-remove-item]');
     if (rm) {
@@ -866,8 +1005,20 @@ function configurarEventos() {
     }
   });
 
+  // Perfil
   $('btnPerfil').addEventListener('click', abrirPerfil);
+  if ($('btnSair')) {
+    $('btnSair').addEventListener('click', async () => {
+      await supabase.auth.signOut();
+      usuario = null;
+      enderecos = [];
+      enderecoSelecionado = null;
+      $('perfilOverlay').classList.remove('open');
+      toast('Você saiu');
+    });
+  }
 
+  // Fechar modais
   document.querySelectorAll('[data-close]').forEach(b => {
     b.addEventListener('click', () => $(b.dataset.close).classList.remove('open'));
   });
@@ -882,7 +1033,7 @@ function configurarEventos() {
     $('drawerBackdrop').classList.remove('open');
   });
 
-  // Busca de CEP (funciona no cadastro e no endereço)
+  // CEP
   document.querySelectorAll('input[id$="Cep"], #endCep').forEach(inp => {
     inp.addEventListener('blur', async e => {
       const cep = e.target.value.replace(/\D/g, '');
