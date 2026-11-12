@@ -16,6 +16,10 @@ let usuario = null;
 let catAtiva = 'all';
 let modoCadastro = false;
 
+// Endereços do usuário
+let enderecos = [];
+let enderecoSelecionado = null;
+
 // Configurações vindas do banco
 let precoBase = 12.00;
 let inclusosPadrao = ['alface', 'tomate', 'cebola', 'ketchup', 'maionese'];
@@ -47,6 +51,16 @@ const esc = (s) => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','
 function imgUrl(url) {
   if (!url) return '';
   return url + (url.includes('?') ? '&' : '?') + 'v=' + IMG_VERSION;
+}
+
+// Gera e-mail interno a partir do telefone — o cliente nunca vê
+function emailInterno(telefone) {
+  const digits = String(telefone).replace(/\D/g, '');
+  return `${digits}@montae.local`;
+}
+
+function soDigitos(v) {
+  return String(v || '').replace(/\D/g, '');
 }
 
 function toast(msg) {
@@ -116,8 +130,6 @@ async function carregarPrecosReceitas() {
 
   (data || []).forEach(it => {
     if (!it.ingrediente_id) return;
-
-    // Ignora o que já está no preço base
     if (itensNaBase.includes(it.ingrediente_id)) return;
 
     const preco = precoIng[it.ingrediente_id] || 0;
@@ -131,6 +143,99 @@ async function carregarPrecosReceitas() {
 
 function precoReceita(id) {
   return precoBase + (precosReceita[id] || 0);
+}
+
+// ============ ENDEREÇOS ============
+async function carregarEnderecos() {
+  if (!usuario) { enderecos = []; enderecoSelecionado = null; return; }
+
+  const { data, error } = await supabase
+    .from('enderecos')
+    .select('*')
+    .eq('user_id', usuario.id)
+    .order('principal', { ascending: false })
+    .order('criado_em', { ascending: false });
+
+  if (error) {
+    console.error('ERRO em enderecos:', error.message);
+    enderecos = [];
+    enderecoSelecionado = null;
+    return;
+  }
+
+  enderecos = data || [];
+  if (!enderecos.some(e => e.id === enderecoSelecionado)) {
+    enderecoSelecionado = enderecos[0]?.id || null;
+  }
+  console.log('enderecos:', enderecos.length);
+}
+
+function renderEnderecosModal() {
+  const host = $('listaEnderecos');
+  if (!host) return;
+
+  if (!enderecos.length) {
+    host.innerHTML = '<p class="empty-state">Nenhum endereço salvo. Cadastre o primeiro abaixo.</p>';
+  } else {
+    host.innerHTML = enderecos.map(e => `
+      <label class="endereco-card ${enderecoSelecionado === e.id ? 'selected' : ''}">
+        <input type="radio" name="endSel" value="${e.id}" ${enderecoSelecionado === e.id ? 'checked' : ''}>
+        <div>
+          <div class="endereco-rotulo">${esc(e.rotulo || 'Casa')}</div>
+          <div class="meta">${esc(e.rua || '')}, ${esc(e.numero || '')} — ${esc(e.bairro || '')}</div>
+          <div class="meta">${esc(e.cidade || '')}/${esc(e.estado || '')} · CEP ${esc(e.cep || '')}</div>
+        </div>
+      </label>
+    `).join('');
+  }
+
+  const form = $('formNovoEndereco');
+  if (form) form.style.display = enderecos.length ? 'none' : 'block';
+
+  const btnNovo = $('btnNovoEndereco');
+  if (btnNovo) btnNovo.style.display = enderecos.length ? 'inline-flex' : 'none';
+}
+
+function abrirEndereco() {
+  renderEnderecosModal();
+  $('enderecoOverlay').classList.add('open');
+}
+
+async function salvarEndereco() {
+  if (!usuario) { abrirLogin(); return; }
+
+  const rotulo = ($('endRotulo')?.value || '').trim() || 'Casa';
+  const cep = ($('endCep')?.value || '').trim();
+  const rua = ($('endRua')?.value || '').trim();
+  const numero = ($('endNumero')?.value || '').trim();
+  const bairro = ($('endBairro')?.value || '').trim();
+  const cidade = ($('endCidade')?.value || '').trim();
+  const estado = ($('endEstado')?.value || '').trim();
+
+  if (!cep || !rua || !numero || !bairro || !cidade || !estado) {
+    toast('Preencha todos os campos do endereço.');
+    return;
+  }
+
+  const { data, error } = await supabase.from('enderecos').insert({
+    user_id: usuario.id,
+    rotulo,
+    cep,
+    rua,
+    numero,
+    complemento: ($('endComplemento')?.value || '').trim(),
+    bairro,
+    cidade,
+    estado,
+    principal: enderecos.length === 0
+  }).select().single();
+
+  if (error) { toast('Erro ao salvar endereço: ' + error.message); return; }
+
+  await carregarEnderecos();
+  enderecoSelecionado = data.id;
+  renderEnderecosModal();
+  toast('Endereço salvo!');
 }
 
 // ============ MONTAGEM ============
@@ -147,13 +252,11 @@ function montagemPadrao() {
   montagem.camadas = {};
   montagem.inclusos = {};
 
-  // Inclusos padrão marcados
   catalogo.inclusos.forEach(i => { montagem.inclusos[i.id] = false; });
   inclusosPadrao.forEach(id => {
     if (catalogo.inclusos.some(i => i.id === id)) montagem.inclusos[id] = true;
   });
 
-  // Pão base, carne e pão topo
   const paoBaixo = catalogo.ingredientes.find(i => i.layer === 'bun-bottom');
   const carne = catalogo.ingredientes.find(i => i.id === 'carne' || i.layer === 'patty');
   const paoCima = catalogo.ingredientes.find(i => i.layer === 'bun-top');
@@ -179,14 +282,12 @@ function setQtd(id, qtd) {
 function precoMontagem() {
   let total = precoBase;
 
-  // Ingredientes (camadas) que não estão na base
   Object.entries(montagem.camadas).forEach(([id, q]) => {
     if (itensNaBase.includes(id)) return;
     const ing = catalogo.ingredientes.find(i => i.id === id);
     if (ing) total += Number(ing.preco) * q;
   });
 
-  // Inclusos marcados que têm preço (ex: molho especial cadastrado em inclusos)
   catalogo.inclusos.forEach(inc => {
     if (!montagem.inclusos[inc.id]) return;
     if (itensNaBase.includes(inc.id)) return;
@@ -244,7 +345,6 @@ function renderIngredientes() {
   const cats = catalogo.categorias.filter(c => catAtiva === 'all' || c.id === catAtiva);
 
   $('listaIngredientes').innerHTML = cats.map(cat => {
-    // Esconde pão e carne da lista (já vêm no padrão)
     const itens = catalogo.ingredientes.filter(i =>
       i.categoria_id === cat.id && !idsFixo.includes(i.id)
     );
@@ -385,9 +485,15 @@ function renderTudo() {
 function abrirLogin(cadastro = false) {
   modoCadastro = cadastro;
   $('loginTitle').textContent = cadastro ? 'Criar conta' : 'Entrar';
-  $('loginSubtitle').textContent = cadastro ? 'Cadastre-se para salvar seus pedidos.' : 'Use seu e-mail e senha para acessar.';
+  $('loginSubtitle').textContent = cadastro
+    ? 'Informe seu nome, telefone e crie uma senha.'
+    : 'Use seu telefone e senha para acessar.';
   $('loginSubmit').textContent = cadastro ? 'Criar conta' : 'Entrar';
-  $('nomeField').style.display = cadastro ? 'flex' : 'none';
+
+  if ($('nomeField')) $('nomeField').style.display = cadastro ? 'flex' : 'none';
+  if ($('telefoneField')) $('telefoneField').style.display = 'flex';
+  if ($('emailField')) $('emailField').style.display = 'none';
+
   $('toggleModo').textContent = cadastro ? 'Já tenho conta' : 'Criar conta';
   $('loginError').classList.remove('show');
   $('loginOverlay').classList.add('open');
@@ -395,40 +501,119 @@ function abrirLogin(cadastro = false) {
 
 async function processarLogin(e) {
   e.preventDefault();
-  const email = $('loginEmail').value.trim();
+
   const senha = $('loginSenha').value;
-  const nome = $('loginNome').value.trim();
+  const nome = ($('loginNome')?.value || '').trim();
+  const telefone = ($('loginTelefone')?.value || '').trim();
+  const digits = soDigitos(telefone);
   const err = $('loginError');
 
-  if (!email || senha.length < 6) {
-    err.textContent = 'Informe e-mail e senha (mínimo 6 caracteres).';
+  if (digits.length < 10) {
+    err.textContent = 'Informe um telefone válido com DDD.';
     err.classList.add('show');
     return;
   }
 
-  const { data, error } = modoCadastro
-    ? await supabase.auth.signUp({ email, password: senha, options: { data: { nome } } })
-    : await supabase.auth.signInWithPassword({ email, password: senha });
+  if (senha.length < 6) {
+    err.textContent = 'A senha precisa ter no mínimo 6 caracteres.';
+    err.classList.add('show');
+    return;
+  }
+
+  if (modoCadastro && !nome) {
+    err.textContent = 'Informe seu nome.';
+    err.classList.add('show');
+    return;
+  }
+
+  const email = emailInterno(digits);
+
+  if (modoCadastro) {
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password: senha,
+      options: { data: { nome, telefone: digits } }
+    });
+
+    if (error) {
+      err.textContent = /already|registered|exists/i.test(error.message)
+        ? 'Este telefone já está cadastrado. Faça login.'
+        : error.message;
+      err.classList.add('show');
+      return;
+    }
+
+    usuario = data.user;
+    $('loginOverlay').classList.remove('open');
+    toast('Conta criada!');
+    await carregarEnderecos();
+    renderSalvos();
+    return;
+  }
+
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password: senha });
 
   if (error) {
-    err.textContent = error.message;
+    err.textContent = 'Telefone ou senha incorretos.';
     err.classList.add('show');
     return;
   }
 
   usuario = data.user;
   $('loginOverlay').classList.remove('open');
-  toast(modoCadastro ? 'Conta criada!' : 'Bem-vindo de volta!');
+  toast('Bem-vindo de volta!');
+  await carregarEnderecos();
   renderSalvos();
 }
 
 async function verificarSessao() {
   const { data: { session } } = await supabase.auth.getSession();
   usuario = session?.user ?? null;
-  supabase.auth.onAuthStateChange((_e, s) => {
+  supabase.auth.onAuthStateChange(async (_e, s) => {
     usuario = s?.user ?? null;
+    await carregarEnderecos();
     renderSalvos();
   });
+}
+
+// ============ PERFIL ============
+async function abrirPerfil() {
+  if (!usuario) { abrirLogin(); return; }
+
+  const meta = usuario.user_metadata || {};
+  if ($('perfilNome')) $('perfilNome').textContent = meta.nome || 'Cliente';
+  if ($('perfilTelefone')) $('perfilTelefone').textContent = meta.telefone || '';
+
+  const { data, error } = await supabase
+    .from('pedidos')
+    .select('id, total, status, criado_em, endereco_snapshot')
+    .eq('user_id', usuario.id)
+    .order('criado_em', { ascending: false })
+    .limit(5);
+
+  if (error) console.error('ERRO pedidos:', error.message);
+
+  const host = $('listaPedidos');
+  if (host) {
+    if (!data || !data.length) {
+      host.innerHTML = '<li class="empty-state">Nenhum pedido ainda.</li>';
+    } else {
+      host.innerHTML = data.map(p => {
+        const dt = new Date(p.criado_em).toLocaleDateString('pt-BR');
+        const rot = (p.endereco_snapshot && p.endereco_snapshot.rotulo) || 'Endereço';
+        return `
+          <li class="drawer-item">
+            <div>
+              <div>${fmt(p.total)}</div>
+              <div class="meta">${dt} · ${esc(rot)}</div>
+            </div>
+            <span class="status-badge status-${esc(p.status)}">${esc(p.status)}</span>
+          </li>`;
+      }).join('');
+    }
+  }
+
+  $('perfilOverlay').classList.add('open');
 }
 
 // ============ AÇÕES ============
@@ -512,11 +697,20 @@ async function finalizarPedido(e) {
   e.preventDefault();
   if (!usuario) { $('enderecoOverlay').classList.remove('open'); abrirLogin(); return; }
   if (!carrinho.itens.length) { toast('Carrinho vazio.'); return; }
+  if (!enderecoSelecionado) { toast('Escolha ou cadastre um endereço.'); return; }
+
+  const end = enderecos.find(x => x.id === enderecoSelecionado);
+  if (!end) { toast('Endereço inválido.'); return; }
 
   const endereco = {
-    cep: $('endCep').value, rua: $('endRua').value, numero: $('endNumero').value,
-    complemento: $('endComplemento').value, bairro: $('endBairro').value,
-    cidade: $('endCidade').value, estado: $('endEstado').value
+    rotulo: end.rotulo,
+    cep: end.cep,
+    rua: end.rua,
+    numero: end.numero,
+    complemento: end.complemento,
+    bairro: end.bairro,
+    cidade: end.cidade,
+    estado: end.estado
   };
 
   const subtotal = carrinho.itens.reduce((s, i) => s + i.preco, 0);
@@ -530,7 +724,10 @@ async function finalizarPedido(e) {
     status: 'pendente'
   }).select().single();
 
-  if (errPed) { $('endError').textContent = errPed.message; $('endError').classList.add('show'); return; }
+  if (errPed) {
+    if ($('endError')) { $('endError').textContent = errPed.message; $('endError').classList.add('show'); }
+    return;
+  }
 
   const itens = carrinho.itens.map(i => ({
     pedido_id: pedido.id,
@@ -544,11 +741,14 @@ async function finalizarPedido(e) {
   }));
 
   const { error: errItens } = await supabase.from('pedido_itens').insert(itens);
-  if (errItens) { $('endError').textContent = errItens.message; $('endError').classList.add('show'); return; }
+  if (errItens) {
+    if ($('endError')) { $('endError').textContent = errItens.message; $('endError').classList.add('show'); }
+    return;
+  }
 
   carrinho.itens = [];
   $('enderecoOverlay').classList.remove('open');
-  $('enderecoForm').reset();
+  if ($('enderecoForm')) $('enderecoForm').reset();
   renderCarrinho();
   toast('Pedido realizado!');
 }
@@ -589,14 +789,15 @@ function configurarEventos() {
   $('btnAdicionar').addEventListener('click', () => adicionarAoCarrinho());
   $('btnSalvar').addEventListener('click', salvarHamburguer);
 
-  $('checkout').addEventListener('click', () => {
+  $('checkout').addEventListener('click', async () => {
     if (!usuario) { abrirLogin(); return; }
     if (!carrinho.itens.length && !Object.keys(montagem.camadas).length) {
       toast('Monte ou adicione algo antes de concluir.');
       return;
     }
     if (Object.keys(montagem.camadas).length) adicionarAoCarrinho();
-    $('enderecoOverlay').classList.add('open');
+    await carregarEnderecos();
+    abrirEndereco();
   });
 
   $('loginForm').addEventListener('submit', processarLogin);
@@ -604,7 +805,29 @@ function configurarEventos() {
     e.preventDefault();
     abrirLogin(!modoCadastro);
   });
-  $('enderecoForm').addEventListener('submit', finalizarPedido);
+
+  // Endereços
+  if ($('listaEnderecos')) {
+    $('listaEnderecos').addEventListener('change', e => {
+      const r = e.target.closest('input[name="endSel"]');
+      if (r) { enderecoSelecionado = r.value; renderEnderecosModal(); }
+    });
+  }
+
+  if ($('btnNovoEndereco')) {
+    $('btnNovoEndereco').addEventListener('click', () => {
+      if ($('formNovoEndereco')) $('formNovoEndereco').style.display = 'block';
+      if ($('btnNovoEndereco')) $('btnNovoEndereco').style.display = 'none';
+    });
+  }
+
+  if ($('btnSalvarEndereco')) {
+    $('btnSalvarEndereco').addEventListener('click', salvarEndereco);
+  }
+
+  if ($('enderecoForm')) {
+    $('enderecoForm').addEventListener('submit', finalizarPedido);
+  }
 
   $('btnReceitas').addEventListener('click', () => {
     renderReceitas();
@@ -643,15 +866,7 @@ function configurarEventos() {
     }
   });
 
-  $('btnPerfil').addEventListener('click', async () => {
-    if (usuario) {
-      if (confirm('Deseja sair da conta?')) {
-        await supabase.auth.signOut();
-        usuario = null;
-        toast('Você saiu');
-      }
-    } else abrirLogin();
-  });
+  $('btnPerfil').addEventListener('click', abrirPerfil);
 
   document.querySelectorAll('[data-close]').forEach(b => {
     b.addEventListener('click', () => $(b.dataset.close).classList.remove('open'));
@@ -667,19 +882,21 @@ function configurarEventos() {
     $('drawerBackdrop').classList.remove('open');
   });
 
-  // Busca de CEP
-  $('endCep').addEventListener('blur', async e => {
-    const cep = e.target.value.replace(/\D/g, '');
-    if (cep.length !== 8) return;
-    try {
-      const r = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
-      const d = await r.json();
-      if (d.erro) return;
-      $('endRua').value = d.logradouro || '';
-      $('endBairro').value = d.bairro || '';
-      $('endCidade').value = d.localidade || '';
-      $('endEstado').value = d.uf || '';
-    } catch {}
+  // Busca de CEP (funciona no cadastro e no endereço)
+  document.querySelectorAll('input[id$="Cep"], #endCep').forEach(inp => {
+    inp.addEventListener('blur', async e => {
+      const cep = e.target.value.replace(/\D/g, '');
+      if (cep.length !== 8) return;
+      try {
+        const r = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+        const d = await r.json();
+        if (d.erro) return;
+        if ($('endRua')) $('endRua').value = d.logradouro || '';
+        if ($('endBairro')) $('endBairro').value = d.bairro || '';
+        if ($('endCidade')) $('endCidade').value = d.localidade || '';
+        if ($('endEstado')) $('endEstado').value = d.uf || '';
+      } catch {}
+    });
   });
 }
 
@@ -691,6 +908,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     await carregarPrecosReceitas();
     montagemPadrao();
     await verificarSessao();
+    await carregarEnderecos();
     renderTudo();
     configurarEventos();
     console.log('montaê iniciado com sucesso');
