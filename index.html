@@ -20,6 +20,7 @@
   --radius: 14px;
   --font-serif: 'Playfair Display', Georgia, serif;
   --font-sans: 'Jost', system-ui, sans-serif;
+  --overlap: 25%;
 }
 * { box-sizing: border-box; }
 html, body {
@@ -134,22 +135,46 @@ input, textarea { font-family: inherit; }
   position: relative; width: 100%; aspect-ratio: 1/1.15;
   display: flex; align-items: center; justify-content: center;
 }
+
+/* ===== EMPILHAMENTO CORRIGIDO ===== */
 .stack-burger {
-  position: relative; width: 300px;
-  display: flex; flex-direction: column-reverse; align-items: center;
+  position: relative;
+  width: 300px;
+  display: flex;
+  flex-direction: column;      /* ordem natural: primeiro = topo do DOM = base visual */
+  align-items: center;
+  justify-content: flex-end;
 }
+
 .layer {
-  width: 100%; display: flex; justify-content: center; margin-top: -6px;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  margin-top: 0;
   animation: layerIn 0.45s cubic-bezier(0.2,0.8,0.2,1) both;
 }
+
 .layer img {
   width: 100%; height: auto; display: block; object-fit: contain;
   filter: drop-shadow(0 2px 3px rgba(0,0,0,0.08));
 }
+
+/* Sobreposição de 25% da própria altura, mantida dentro da animação */
 @keyframes layerIn {
-  from { opacity: 0; transform: translateY(-14px); }
-  to { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; transform: translateY(calc(var(--overlap) * -1 - 14px)); }
+  to   { opacity: 1; transform: translateY(calc(var(--overlap) * -1)); }
 }
+
+/* Camadas que não devem sobrepor: pão base e pão topo */
+.layer[data-layer="bun-bottom"],
+.layer[data-layer="bun-top"] {
+  animation: layerInFlat 0.45s cubic-bezier(0.2,0.8,0.2,1) both;
+}
+@keyframes layerInFlat {
+  from { opacity: 0; transform: translateY(-14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
 .empty-stage { color: #4A443C; font-size: 0.9rem; text-align: center; padding: 40px 20px; }
 
 /* Resumo */
@@ -493,6 +518,7 @@ input, textarea { font-family: inherit; }
 </aside>
 
 <div class="toast-host" id="toastHost"></div>
+
 <script src="js/config.js"></script>
 <script type="module" src="js/app.js"></script>
 </body>
