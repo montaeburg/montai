@@ -156,10 +156,7 @@ input, textarea { font-family: inherit; }
   width: 100%; height: auto; display: block; object-fit: contain;
   filter: drop-shadow(0 2px 3px rgba(0,0,0,0.08));
 }
-/* Apenas o pão de cima não sobrepõe */
-.layer[data-layer="bun-top"] {
-  margin-top: 0;
-}
+.layer[data-layer="bun-top"] { margin-top: 0; }
 @keyframes layerFade {
   from { opacity: 0; }
   to   { opacity: 1; }
@@ -266,13 +263,61 @@ input, textarea { font-family: inherit; }
   color: var(--text); border-radius: 10px; padding: 11px 13px; font-size: 0.9rem;
 }
 .form-field input:focus { outline: 2px solid var(--accent-text); outline-offset: 1px; }
-.form-field .helper { font-size: 0.74rem; color: var(--text-muted); }
 .modal footer { display: flex; gap: 10px; margin-top: 18px; }
 .modal footer button { flex: 1; }
-.error-msg {
-  display: none; margin: 8px 0 0; font-size: 0.8rem; color: #E8806F;
-}
+.error-msg { display: none; margin: 8px 0 0; font-size: 0.8rem; color: #E8806F; }
 .error-msg.show { display: block; }
+
+/* Etapas do checkout */
+.steps-bar {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  margin-bottom: 20px;
+}
+.step-dot {
+  width: 28px; height: 28px; border-radius: 50%;
+  border: 1px solid var(--border); background: transparent;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 0.75rem; color: var(--text-muted); transition: all 0.2s;
+}
+.step-dot.active { background: var(--accent); color: #0A0A0A; border-color: var(--accent); font-weight: 600; }
+.step-dot.done { background: rgba(217,162,74,0.25); color: var(--accent-text); border-color: var(--accent); }
+.step-line { width: 24px; height: 1px; background: var(--border); }
+
+/* Upsell batata */
+.upsell-card {
+  display: flex; align-items: center; gap: 14px;
+  padding: 14px; margin-bottom: 10px;
+  border: 1px solid rgba(255,255,255,0.08); border-radius: var(--radius);
+  background: var(--surface);
+}
+.upsell-img {
+  width: 72px; height: 72px; object-fit: cover;
+  border-radius: 10px; flex-shrink: 0; background: #222528;
+}
+.upsell-info { flex: 1; min-width: 0; }
+.upsell-nome { font-weight: 600; font-size: 0.95rem; }
+.upsell-desc { font-size: 0.78rem; color: var(--text-muted); margin-top: 2px; }
+.upsell-preco { font-size: 0.9rem; color: var(--accent-text); margin-top: 4px; font-weight: 500; }
+.upsell-ctrl { flex-shrink: 0; }
+
+/* Bebidas */
+.bebida-card {
+  display: flex; align-items: center; gap: 14px;
+  padding: 12px 14px; margin-bottom: 8px;
+  border: 1px solid rgba(255,255,255,0.08); border-radius: var(--radius);
+  background: var(--surface); cursor: pointer; transition: all 0.2s;
+}
+.bebida-card:hover { border-color: rgba(217,162,74,0.4); }
+.bebida-card.selected { border-color: var(--accent); background: rgba(217,162,74,0.08); }
+.bebida-card input { accent-color: var(--accent); flex-shrink: 0; }
+.bebida-img {
+  width: 52px; height: 52px; object-fit: cover;
+  border-radius: 8px; flex-shrink: 0; background: #222528;
+}
+.bebida-info { flex: 1; min-width: 0; }
+.bebida-nome { font-weight: 500; font-size: 0.9rem; }
+.bebida-tam { font-size: 0.75rem; color: var(--text-muted); }
+.bebida-preco { font-size: 0.85rem; color: var(--accent-text); margin-top: 2px; }
 
 /* Endereços */
 .endereco-card {
@@ -282,9 +327,7 @@ input, textarea { font-family: inherit; }
   background: var(--surface); cursor: pointer; transition: all 0.2s;
 }
 .endereco-card:hover { border-color: rgba(217,162,74,0.4); }
-.endereco-card.selected {
-  border-color: var(--accent); background: rgba(217,162,74,0.08);
-}
+.endereco-card.selected { border-color: var(--accent); background: rgba(217,162,74,0.08); }
 .endereco-card input { margin-top: 3px; accent-color: var(--accent); }
 .endereco-rotulo {
   font-weight: 600; font-size: 0.9rem; color: var(--accent-text);
@@ -481,58 +524,97 @@ input, textarea { font-family: inherit; }
   </div>
 </div>
 
-<!-- Modal Endereços -->
-<div class="overlay" id="enderecoOverlay">
+<!-- Modal Checkout em etapas -->
+<div class="overlay" id="checkoutOverlay">
   <div class="modal">
-    <button class="close-x" data-close="enderecoOverlay">×</button>
-    <h3>Endereço de entrega</h3>
-    <p class="muted-sm">Escolha um endereço salvo ou cadastre um novo.</p>
+    <button class="close-x" data-close="checkoutOverlay">×</button>
 
-    <div id="listaEnderecos"></div>
-
-    <button type="button" class="btn-outline" id="btnNovoEndereco">+ Novo endereço</button>
-
-    <div id="formNovoEndereco">
-      <h4>Novo endereço</h4>
-      <div class="form-field">
-        <label for="endRotulo">Rótulo</label>
-        <input id="endRotulo" type="text" placeholder="Casa, Trabalho..." value="Casa">
-      </div>
-      <div class="form-field">
-        <label for="endCep">CEP</label>
-        <input id="endCep" type="text" placeholder="00000-000" maxlength="9">
-      </div>
-      <div class="form-field">
-        <label for="endRua">Rua</label>
-        <input id="endRua" type="text">
-      </div>
-      <div class="form-field">
-        <label for="endNumero">Número</label>
-        <input id="endNumero" type="text">
-      </div>
-      <div class="form-field">
-        <label for="endComplemento">Complemento</label>
-        <input id="endComplemento" type="text" placeholder="Apto, bloco...">
-      </div>
-      <div class="form-field">
-        <label for="endBairro">Bairro</label>
-        <input id="endBairro" type="text">
-      </div>
-      <div class="form-field">
-        <label for="endCidade">Cidade</label>
-        <input id="endCidade" type="text">
-      </div>
-      <div class="form-field">
-        <label for="endEstado">Estado</label>
-        <input id="endEstado" type="text" maxlength="2" placeholder="SP">
-      </div>
-      <button type="button" class="btn-solid" style="width:100%;" id="btnSalvarEndereco">Salvar endereço</button>
+    <div class="steps-bar">
+      <span class="step-dot active">1</span>
+      <span class="step-line"></span>
+      <span class="step-dot">2</span>
+      <span class="step-line"></span>
+      <span class="step-dot">3</span>
     </div>
 
-    <form id="enderecoForm">
-      <p class="error-msg" id="endError"></p>
-      <button type="submit" class="btn-solid" style="width:100%; margin-top:16px;">Finalizar pedido</button>
-    </form>
+    <!-- ETAPA 1: BATATA -->
+    <div id="etapaBatata">
+      <h3>Quer adicionar batata?</h3>
+      <p class="muted-sm">Uma porção a mais deixa o pedido completo.</p>
+      <div id="listaBatata"></div>
+      <p class="muted-sm" id="batataTotal" style="margin-top:8px;"></p>
+      <div style="display:flex; gap:10px; margin-top:18px;">
+        <button type="button" class="btn-outline" style="flex:1;" id="btnBatataPular">Pular</button>
+        <button type="button" class="btn-solid" style="flex:1;" id="btnBatataContinuar">Continuar</button>
+      </div>
+    </div>
+
+    <!-- ETAPA 2: BEBIDA -->
+    <div id="etapaBebida" style="display:none;">
+      <h3>Escolha uma bebida</h3>
+      <p class="muted-sm">Opcional — pode pular se preferir.</p>
+      <div id="listaBebidas"></div>
+      <div style="display:flex; gap:10px; margin-top:18px;">
+        <button type="button" class="btn-ghost" style="flex:0 0 auto;" id="btnVoltarBebida">Voltar</button>
+        <button type="button" class="btn-outline" style="flex:1;" id="btnBebidaPular">Pular</button>
+        <button type="button" class="btn-solid" style="flex:1;" id="btnBebidaContinuar">Continuar</button>
+      </div>
+    </div>
+
+    <!-- ETAPA 3: ENDEREÇO -->
+    <div id="etapaEndereco" style="display:none;">
+      <h3>Endereço de entrega</h3>
+      <p class="muted-sm">Escolha um endereço salvo ou cadastre um novo.</p>
+
+      <div id="listaEnderecos"></div>
+
+      <button type="button" class="btn-outline" id="btnNovoEndereco">+ Novo endereço</button>
+
+      <div id="formNovoEndereco">
+        <h4>Novo endereço</h4>
+        <div class="form-field">
+          <label for="endRotulo">Rótulo</label>
+          <input id="endRotulo" type="text" placeholder="Casa, Trabalho..." value="Casa">
+        </div>
+        <div class="form-field">
+          <label for="endCep">CEP</label>
+          <input id="endCep" type="text" placeholder="00000-000" maxlength="9">
+        </div>
+        <div class="form-field">
+          <label for="endRua">Rua</label>
+          <input id="endRua" type="text">
+        </div>
+        <div class="form-field">
+          <label for="endNumero">Número</label>
+          <input id="endNumero" type="text">
+        </div>
+        <div class="form-field">
+          <label for="endComplemento">Complemento</label>
+          <input id="endComplemento" type="text" placeholder="Apto, bloco...">
+        </div>
+        <div class="form-field">
+          <label for="endBairro">Bairro</label>
+          <input id="endBairro" type="text">
+        </div>
+        <div class="form-field">
+          <label for="endCidade">Cidade</label>
+          <input id="endCidade" type="text">
+        </div>
+        <div class="form-field">
+          <label for="endEstado">Estado</label>
+          <input id="endEstado" type="text" maxlength="2" placeholder="SP">
+        </div>
+        <button type="button" class="btn-solid" style="width:100%;" id="btnSalvarEndereco">Salvar endereço</button>
+      </div>
+
+      <form id="enderecoForm">
+        <p class="error-msg" id="endError"></p>
+        <div style="display:flex; gap:10px; margin-top:16px;">
+          <button type="button" class="btn-ghost" style="flex:0 0 auto;" id="btnVoltarEndereco">Voltar</button>
+          <button type="submit" class="btn-solid" style="flex:1;">Finalizar pedido</button>
+        </div>
+      </form>
+    </div>
   </div>
 </div>
 
