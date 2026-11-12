@@ -178,12 +178,22 @@ function setQtd(id, qtd) {
 
 function precoMontagem() {
   let total = precoBase;
+
+  // Ingredientes (camadas) que não estão na base
   Object.entries(montagem.camadas).forEach(([id, q]) => {
-    // Itens que já estão na base não são cobrados de novo
     if (itensNaBase.includes(id)) return;
     const ing = catalogo.ingredientes.find(i => i.id === id);
     if (ing) total += Number(ing.preco) * q;
   });
+
+  // Inclusos marcados que têm preço (ex: molho especial cadastrado em inclusos)
+  catalogo.inclusos.forEach(inc => {
+    if (!montagem.inclusos[inc.id]) return;
+    if (itensNaBase.includes(inc.id)) return;
+    const preco = Number(inc.preco) || 0;
+    if (preco > 0) total += preco;
+  });
+
   return total;
 }
 
