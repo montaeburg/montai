@@ -10,7 +10,6 @@ const fmt = (v) => 'R$ ' + Number(v).toFixed(2).replace('.', ',');
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
 // ============ ORDEM DAS CAMADAS ============
-// Mesma sequência usada no app.js para empilhar o hambúrguer
 const LAYER_ORDER = [
   'bun-bottom', 'ketchup', 'maionese', 'molho-especial',
   'lettuce', 'tomato', 'onion',
@@ -22,7 +21,7 @@ const LAYER_ORDER = [
 let pedidos = [];
 let somLigado = true;
 let ultimoPedidoImpresso = null;
-let mapaCamadas = {}; // id -> { nome, layer, ordem }
+let mapaCamadas = {};
 
 // ============ CARREGAR NOMES E CAMADAS ============
 async function carregarNomes() {
@@ -44,7 +43,6 @@ async function carregarNomes() {
 }
 
 // ============ ORDENAR EXTRAS ============
-// Ordena pela sequência real das camadas (LAYER_ORDER) e, no empate, pelo campo ordem
 function ordenarExtras(camadas, inclusos) {
   const lista = [];
 
@@ -128,6 +126,14 @@ function renderTabela() {
     }).join('');
 
     const end = p.endereco_snapshot || {};
+    const isRetirada = end.tipo === 'retirada';
+
+    const enderecoHtml = isRetirada
+      ? `<div class="rotulo" style="color:var(--accent-text)">Retirada no local</div><span style="font-size:0.75rem">Cliente busca no balcão</span>`
+      : `<div class="rotulo">${esc(end.rotulo || 'Casa')}</div>
+         ${esc(end.rua || '')}, ${esc(end.numero || '')}<br>
+         ${esc(end.bairro || '')} — ${esc(end.cidade || '')}/${esc(end.estado || '')}`;
+
     const hora = new Date(p.criado_em).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
     const tel = (p.perfil?.telefone || '').replace(/\D/g, '');
 
@@ -140,11 +146,7 @@ function renderTabela() {
         </td>
         <td><ul class="itens-lista">${itens || '<li>—</li>'}</ul></td>
         <td class="total-cell">${fmt(p.total)}</td>
-        <td class="endereco-cell">
-          <div class="rotulo">${esc(end.rotulo || 'Casa')}</div>
-          ${esc(end.rua || '')}, ${esc(end.numero || '')}<br>
-          ${esc(end.bairro || '')} — ${esc(end.cidade || '')}/${esc(end.estado || '')}
-        </td>
+        <td class="endereco-cell">${enderecoHtml}</td>
         <td>
           <select class="status-select status-${esc(p.status)}" data-status-sel="${p.id}">
             <option value="pendente" ${p.status === 'pendente' ? 'selected' : ''}>Pendente</option>
@@ -188,7 +190,7 @@ function montarMensagem(p) {
   const end = p.endereco_snapshot || {};
   const linhas = [];
 
-  linhas.push(`*Pedido #${p.id.slice(0, 6)} — montaí*`);
+  linhas.push(`*Pedido #${p.id.slice(0, 6)} — montaê*`);
   linhas.push('');
   linhas.push('*Itens:*');
 
@@ -205,10 +207,16 @@ function montarMensagem(p) {
   linhas.push(`*Total: ${fmt(p.total)}*`);
   linhas.push('');
   linhas.push('*Entrega:*');
-  linhas.push(`${end.rotulo || 'Casa'} — ${end.rua || ''}, ${end.numero || ''}`);
-  if (end.complemento) linhas.push(end.complemento);
-  linhas.push(`${end.bairro || ''} — ${end.cidade || ''}/${end.estado || ''}`);
-  linhas.push(`CEP ${end.cep || ''}`);
+
+  if (end.tipo === 'retirada') {
+    linhas.push('Retirada no local — cliente busca no balcão');
+  } else {
+    linhas.push(`${end.rotulo || 'Casa'} — ${end.rua || ''}, ${end.numero || ''}`);
+    if (end.complemento) linhas.push(end.complemento);
+    linhas.push(`${end.bairro || ''} — ${end.cidade || ''}/${end.estado || ''}`);
+    linhas.push(`CEP ${end.cep || ''}`);
+  }
+
   linhas.push('');
   linhas.push('*Qual será a forma de pagamento?*');
   linhas.push('Pix, cartão ou dinheiro?');
@@ -239,6 +247,14 @@ function imprimirCupom(p) {
     return `<div class="cupom-item"><span>${i.quantidade}× ${esc(i.nome)}</span><span>${fmt(Number(i.preco_unitario) * i.quantidade)}</span></div>${linhaExtras}`;
   }).join('');
 
+  const entregaHtml = end.tipo === 'retirada'
+    ? '<div><strong>RETIRADA NO LOCAL</strong></div><div>Cliente busca no balcão</div>'
+    : `<div><strong>ENTREGA</strong></div>
+       <div>${esc(end.rotulo || 'Casa')}</div>
+       <div>${esc(end.rua || '')}, ${esc(end.numero || '')}</div>
+       <div>${esc(end.bairro || '')}</div>
+       <div>${esc(end.cidade || '')}/${esc(end.estado || '')}</div>`;
+
   $('cupomArea').innerHTML = `
     <div class="cupom-titulo">montaê</div>
     <div style="text-align:center;font-size:10px">Pedido #${p.id.slice(0, 6)}</div>
@@ -251,11 +267,7 @@ function imprimirCupom(p) {
     <div class="cupom-linha"></div>
     <div class="cupom-item cupom-total"><span>TOTAL</span><span>${fmt(p.total)}</span></div>
     <div class="cupom-linha"></div>
-    <div><strong>ENTREGA</strong></div>
-    <div>${esc(end.rotulo || 'Casa')}</div>
-    <div>${esc(end.rua || '')}, ${esc(end.numero || '')}</div>
-    <div>${esc(end.bairro || '')}</div>
-    <div>${esc(end.cidade || '')}/${esc(end.estado || '')}</div>
+    ${entregaHtml}
     <div class="cupom-linha"></div>
     <div style="text-align:center;font-size:10px">Obrigado!</div>
   `;
