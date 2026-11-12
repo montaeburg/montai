@@ -9,21 +9,74 @@ const $ = (id) => document.getElementById(id);
 const fmt = (v) => 'R$ ' + Number(v).toFixed(2).replace('.', ',');
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
+// ============ ORDEM DAS CAMADAS ============
+// Mesma sequência usada no app.js para empilhar o hambúrguer
+const LAYER_ORDER = [
+  'bun-bottom', 'ketchup', 'maionese', 'molho-especial',
+  'lettuce', 'tomato', 'onion',
+  'patty', 'extra-patty', 'cheese', 'bacon', 'calabresa', 'egg',
+  'straw', 'doritos', 'bun-top'
+];
+
+// ============ ESTADO ============
 let pedidos = [];
 let somLigado = true;
 let ultimoPedidoImpresso = null;
-let nomesIngredientes = {};
-let nomesInclusos = {};
+let mapaCamadas = {}; // id -> { nome, layer, ordem }
 
+// ============ CARREGAR NOMES E CAMADAS ============
 async function carregarNomes() {
   const [ing, inc] = await Promise.all([
-    supabase.from('ingredientes').select('id, nome'),
-    supabase.from('inclusos').select('id, nome')
+    supabase.from('ingredientes').select('id, nome, layer, ordem'),
+    supabase.from('inclusos').select('id, nome, layer, ordem')
   ]);
-  (ing.data || []).forEach(i => { nomesIngredientes[i.id] = i.nome; });
-  (inc.data || []).forEach(i => { nomesInclusos[i.id] = i.nome; });
+
+  mapaCamadas = {};
+
+  (ing.data || []).forEach(i => {
+    mapaCamadas[i.id] = { nome: i.nome, layer: i.layer, ordem: i.ordem || 0 };
+  });
+  (inc.data || []).forEach(i => {
+    mapaCamadas[i.id] = { nome: i.nome, layer: i.layer, ordem: i.ordem || 0 };
+  });
+
+  console.log('camadas mapeadas:', Object.keys(mapaCamadas).length);
 }
 
+// ============ ORDENAR EXTRAS ============
+// Ordena pela sequência real das camadas (LAYER_ORDER) e, no empate, pelo campo ordem
+function ordenarExtras(camadas, inclusos) {
+  const lista = [];
+
+  if (camadas) {
+    Object.entries(camadas).forEach(([id, q]) => {
+      if (!q || q <= 0) return;
+      const info = mapaCamadas[id];
+      if (!info) return;
+      lista.push({ nome: info.nome, layer: info.layer, ordem: info.ordem, qtd: q });
+    });
+  }
+
+  if (inclusos) {
+    Object.entries(inclusos).forEach(([id, marcado]) => {
+      if (!marcado) return;
+      const info = mapaCamadas[id];
+      if (!info) return;
+      lista.push({ nome: info.nome, layer: info.layer, ordem: info.ordem, qtd: 1 });
+    });
+  }
+
+  return lista.sort((a, b) => {
+    const ia = LAYER_ORDER.indexOf(a.layer);
+    const ib = LAYER_ORDER.indexOf(b.layer);
+    const pa = ia === -1 ? 999 : ia;
+    const pb = ib === -1 ? 999 : ib;
+    if (pa !== pb) return pa - pb;
+    return a.ordem - b.ordem;
+  });
+}
+
+// ============ CARREGAR PEDIDOS ============
 async function carregarPedidos() {
   const { data, error } = await supabase
     .from('pedidos')
@@ -55,6 +108,7 @@ async function carregarPedidos() {
   atualizarKpis();
 }
 
+// ============ RENDER DA TABELA ============
 function renderTabela() {
   const corpo = $('corpoTabela');
 
@@ -65,18 +119,11 @@ function renderTabela() {
 
   corpo.innerHTML = pedidos.map(p => {
     const itens = (p.pedido_itens || []).map(i => {
-      const extras = [];
-      if (i.camadas) {
-        Object.entries(i.camadas).forEach(([id, q]) => {
-          if (q > 0) extras.push(nomesIngredientes[id] || id);
-        });
-      }
-      if (i.inclusos) {
-        Object.entries(i.inclusos).forEach(([id, marcado]) => {
-          if (marcado) extras.push(nomesInclusos[id] || id);
-        });
-      }
-      const detalhe = extras.length ? `<br><span style="color:var(--text-muted);font-size:0.72rem">${esc(extras.join(', '))}</span>` : '';
+      const extras = ordenarExtras(i.camadas, i.inclusos);
+      const nomes = extras.map(e => e.qtd > 1 ? `${e.nome} (${e.qtd})` : e.nome);
+      const detalhe = nomes.length
+        ? `<br><span style="color:var(--text-muted);font-size:0.72rem">${esc(nomes.join(', '))}</span>`
+        : '';
       return `<li><span class="qtd">${i.quantidade}×</span> ${esc(i.nome)}${detalhe}</li>`;
     }).join('');
 
@@ -124,6 +171,7 @@ function renderTabela() {
   }).join('');
 }
 
+// ============ KPIs ============
 function atualizarKpis() {
   const hoje = new Date().toDateString();
   const doDia = pedidos.filter(p => new Date(p.criado_em).toDateString() === hoje);
@@ -135,6 +183,7 @@ function atualizarKpis() {
   $('kpiPendentes').textContent = pendentes;
 }
 
+// ============ WHATSAPP ============
 function montarMensagem(p) {
   const end = p.endereco_snapshot || {};
   const linhas = [];
@@ -145,18 +194,10 @@ function montarMensagem(p) {
 
   (p.pedido_itens || []).forEach(i => {
     linhas.push(`• ${i.quantidade}× ${i.nome} — ${fmt(Number(i.preco_unitario) * i.quantidade)}`);
-    const extras = [];
-    if (i.camadas) {
-      Object.entries(i.camadas).forEach(([id, q]) => {
-        if (q > 0) extras.push(nomesIngredientes[id] || id);
-      });
-    }
-    if (i.inclusos) {
-      Object.entries(i.inclusos).forEach(([id, m]) => {
-        if (m) extras.push(nomesInclusos[id] || id);
-      });
-    }
-    if (extras.length) linhas.push(`   _${extras.join(', ')}_`);
+
+    const extras = ordenarExtras(i.camadas, i.inclusos);
+    const nomes = extras.map(e => e.qtd > 1 ? `${e.nome} (${e.qtd})` : e.nome);
+    if (nomes.length) linhas.push(`   _${nomes.join(', ')}_`);
     if (i.observacao) linhas.push(`   Obs: ${i.observacao}`);
   });
 
@@ -187,11 +228,16 @@ function abrirWhatsApp(id) {
   window.open(`https://wa.me/${numero}?text=${msg}`, '_blank');
 }
 
+// ============ IMPRESSÃO ============
 function imprimirCupom(p) {
   const end = p.endereco_snapshot || {};
-  const itens = (p.pedido_itens || []).map(i =>
-    `<div class="cupom-item"><span>${i.quantidade}× ${esc(i.nome)}</span><span>${fmt(Number(i.preco_unitario) * i.quantidade)}</span></div>`
-  ).join('');
+
+  const itens = (p.pedido_itens || []).map(i => {
+    const extras = ordenarExtras(i.camadas, i.inclusos);
+    const nomes = extras.map(e => e.qtd > 1 ? `${e.nome} (${e.qtd})` : e.nome).join(', ');
+    const linhaExtras = nomes ? `<div style="font-size:9px;padding-left:8px">${esc(nomes)}</div>` : '';
+    return `<div class="cupom-item"><span>${i.quantidade}× ${esc(i.nome)}</span><span>${fmt(Number(i.preco_unitario) * i.quantidade)}</span></div>${linhaExtras}`;
+  }).join('');
 
   $('cupomArea').innerHTML = `
     <div class="cupom-titulo">montaê</div>
@@ -217,6 +263,7 @@ function imprimirCupom(p) {
   window.print();
 }
 
+// ============ SOM ============
 function tocarAlerta() {
   if (!somLigado) return;
   try {
@@ -233,6 +280,7 @@ function tocarAlerta() {
   } catch {}
 }
 
+// ============ REALTIME ============
 function assinarRealtime() {
   supabase
     .channel('pedidos-live')
@@ -256,7 +304,8 @@ function assinarRealtime() {
     });
 }
 
-document.addEventListener('click', async (e) => {
+// ============ EVENTOS ============
+document.addEventListener('click', (e) => {
   const wa = e.target.closest('[data-wa]');
   if (wa) { abrirWhatsApp(wa.dataset.wa); return; }
 
@@ -291,6 +340,7 @@ $('btnSom').addEventListener('click', () => {
   $('btnSom').textContent = somLigado ? '🔔 Som: ligado' : '🔕 Som: desligado';
 });
 
+// ============ INIT ============
 (async () => {
   await carregarNomes();
   await carregarPedidos();
