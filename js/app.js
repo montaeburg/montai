@@ -21,6 +21,12 @@ let precoBase = 4.00;
 let inclusosPadrao = ['alface', 'tomate', 'cebola', 'ketchup', 'maionese'];
 let idsFixo = ['pao-baixo', 'pao-cima', 'carne'];
 
+// Cache de preços das receitas (calculado a partir de receita_itens)
+let precosReceita = {};
+
+// Versão para cache busting das imagens
+const IMG_VERSION = Date.now();
+
 // Ordem visual das camadas no hambúrguer
 const LAYER_ORDER = [
   'bun-bottom', 'ketchup', 'maionese', 'molho-especial',
@@ -33,6 +39,12 @@ const LAYER_ORDER = [
 const $ = (id) => document.getElementById(id);
 const fmt = (v) => 'R$ ' + Number(v).toFixed(2).replace('.', ',');
 const esc = (s) => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+// Adiciona versão na URL da imagem para furar o cache
+function imgUrl(url) {
+  if (!url) return '';
+  return url + (url.includes('?') ? '&' : '?') + 'v=' + IMG_VERSION;
+}
 
 function toast(msg) {
   const el = document.createElement('div');
@@ -49,7 +61,7 @@ async function carregarCatalogo() {
     supabase.from('categorias').select('*').order('ordem'),
     supabase.from('ingredientes').select('*').eq('ativo', true).order('ordem'),
     supabase.from('inclusos').select('*').eq('ativo', true).order('ordem'),
-    supabase.from('vw_receitas_com_preco').select('*'),
+    supabase.from('receitas').select('*').order('nome'),
     supabase.from('bebidas').select('*').eq('ativo', true).order('ordem'),
     supabase.from('adicionais_extras').select('*').eq('ativo', true).order('ordem')
   ]);
@@ -80,6 +92,35 @@ async function carregarConfiguracoes() {
     if (c.chave === 'ids_fixos') idsFixo = c.valor.split(',').map(s => s.trim());
   });
   console.log('precoBase:', precoBase, '| inclusosPadrao:', inclusosPadrao);
+}
+
+// Calcula o preço de cada receita somando os ingredientes
+async function carregarPrecosReceitas() {
+  const { data, error } = await supabase
+    .from('receita_itens')
+    .select('receita_id, ingrediente_id, quantidade');
+
+  if (error) {
+    console.error('ERRO em receita_itens:', error.message);
+    return;
+  }
+
+  const precoIng = {};
+  catalogo.ingredientes.forEach(i => { precoIng[i.id] = Number(i.preco) || 0; });
+
+  precosReceita = {};
+  (data || []).forEach(it => {
+    if (!it.ingrediente_id) return;
+    const preco = precoIng[it.ingrediente_id] || 0;
+    precosReceita[it.receita_id] =
+      (precosReceita[it.receita_id] || 0) + preco * (it.quantidade || 1);
+  });
+
+  console.log('precosReceita:', precosReceita);
+}
+
+function precoReceita(id) {
+  return precoBase + (precosReceita[id] || 0);
 }
 
 // ============ MONTAGEM ============
@@ -228,7 +269,7 @@ function renderBurger() {
   empty.style.display = 'none';
   stack.innerHTML = camadas.map(c => `
     <div class="layer" data-layer="${c.layer}">
-      <img src="${c.url}" alt="${esc(c.nome)}">
+      <img src="${imgUrl(c.url)}" alt="${esc(c.nome)}">
     </div>
   `).join('');
 }
@@ -275,7 +316,7 @@ function renderReceitas() {
         <div style="font-family:var(--font-serif); font-size:1.1rem;">${esc(r.nome)}</div>
         <div class="meta">${esc(r.descricao || '')}</div>
       </div>
-      <span style="color:var(--accent-text);">${fmt(Number(r.preco) + precoBase)}</span>
+      <span style="color:var(--accent-text);">${fmt(precoReceita(r.id))}</span>
     </button>
   `).join('') || '<p class="empty-state">Nenhuma receita cadastrada.</p>';
 }
@@ -626,6 +667,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   try {
     await carregarCatalogo();
     await carregarConfiguracoes();
+    await carregarPrecosReceitas();
     montagemPadrao();
     await verificarSessao();
     renderTudo();
