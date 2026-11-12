@@ -58,6 +58,14 @@ function iniciarMontagem() {
   $('obsCounter').textContent = '0/200';
 }
 
+// Montagem padrão ao abrir a página
+function montagemPadrao() {
+  iniciarMontagem();
+  // Carne é o único ingrediente que vem por padrão
+  const carne = catalogo.ingredientes.find(i => i.id === 'carne' || i.layer === 'patty');
+  if (carne) montagem.camadas[carne.id] = 1;
+}
+
 function setQtd(id, qtd) {
   if (qtd <= 0) delete montagem.camadas[id];
   else montagem.camadas[id] = qtd;
