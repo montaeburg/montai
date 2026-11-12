@@ -136,12 +136,12 @@ input, textarea { font-family: inherit; }
   display: flex; align-items: center; justify-content: center;
 }
 
-/* ===== EMPILHAMENTO CORRIGIDO ===== */
+/* ===== EMPILHAMENTO ===== */
 .stack-burger {
   position: relative;
   width: 300px;
   display: flex;
-  flex-direction: column;      /* ordem natural: primeiro = topo do DOM = base visual */
+  flex-direction: column;
   align-items: center;
   justify-content: flex-end;
 }
@@ -150,8 +150,12 @@ input, textarea { font-family: inherit; }
   width: 100%;
   display: flex;
   justify-content: center;
+  margin-top: calc(var(--overlap) * -1);
+  animation: layerFade 0.4s ease both;
+}
+
+.layer:first-child {
   margin-top: 0;
-  animation: layerIn 0.45s cubic-bezier(0.2,0.8,0.2,1) both;
 }
 
 .layer img {
@@ -159,20 +163,15 @@ input, textarea { font-family: inherit; }
   filter: drop-shadow(0 2px 3px rgba(0,0,0,0.08));
 }
 
-/* Sobreposição de 25% da própria altura, mantida dentro da animação */
-@keyframes layerIn {
-  from { opacity: 0; transform: translateY(calc(var(--overlap) * -1 - 14px)); }
-  to   { opacity: 1; transform: translateY(calc(var(--overlap) * -1)); }
-}
-
-/* Camadas que não devem sobrepor: pão base e pão topo */
+/* Pão base e pão topo não sobrepõem */
 .layer[data-layer="bun-bottom"],
 .layer[data-layer="bun-top"] {
-  animation: layerInFlat 0.45s cubic-bezier(0.2,0.8,0.2,1) both;
+  margin-top: 0;
 }
-@keyframes layerInFlat {
-  from { opacity: 0; transform: translateY(-14px); }
-  to   { opacity: 1; transform: translateY(0); }
+
+@keyframes layerFade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
 
 .empty-stage { color: #4A443C; font-size: 0.9rem; text-align: center; padding: 40px 20px; }
@@ -314,7 +313,7 @@ input, textarea { font-family: inherit; }
 .toast-msg {
   background: var(--surface); border: 1px solid rgba(217,162,74,0.35);
   padding: 12px 20px; border-radius: 999px; font-size: 0.85rem;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.5); animation: layerIn 0.3s ease both;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.5); animation: layerFade 0.3s ease both;
   white-space: nowrap;
 }
 
