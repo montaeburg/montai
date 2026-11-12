@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>montaê — Recebimento de pedidos</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600&family=Jost:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --accent: #D9A24A;
+  --accent-text: #E0B15C;
+  --surface: #34383C;
+  --surface-2: #3C4045;
+  --text: #EDEAE3;
+  --text-muted: #9BA0A5;
+  --border: rgba(217,162,74,0.25);
+  --radius: 14px;
+  --font-serif: 'Playfair Display', Georgia, serif;
+  --font-sans: 'Jost', system-ui, sans-serif;
+}
+* { box-sizing: border-box; }
+html, body {
+  margin: 0;
+  background: linear-gradient(180deg, #33373A 0%, #2A2D30 100%);
+  color: var(--text);
+  font-family: var(--font-sans);
+  min-height: 100vh;
+}
+button { font-family: inherit; cursor: pointer; }
+
+.app-header {
+  position: sticky; top: 0; z-index: 50;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 24px; background: #26292C;
+  border-bottom: 1px solid rgba(217,162,74,0.18);
+}
+.wordmark { font-family: var(--font-serif); font-size: 1.4rem; font-weight: 600; }
+.wordmark span { color: var(--accent-text); }
+.header-right { display: flex; align-items: center; gap: 12px; }
+.live-dot {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 0.75rem; color: var(--text-muted);
+}
+.live-dot::before {
+  content: ''; width: 8px; height: 8px; border-radius: 50%;
+  background: #6FC79A; box-shadow: 0 0 0 0 rgba(111,199,154,0.6);
+  animation: pulse 2s infinite;
+}
+@keyframes pulse {
+  0% { box-shadow: 0 0 0 0 rgba(111,199,154,0.6); }
+  70% { box-shadow: 0 0 0 8px rgba(111,199,154,0); }
+  100% { box-shadow: 0 0 0 0 rgba(111,199,154,0); }
+}
+
+.kpis {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 14px; padding: 20px 24px 0; max-width: 1400px; margin: 0 auto;
+}
+.kpi {
+  background: var(--surface); border: 1px solid rgba(255,255,255,0.06);
+  border-radius: var(--radius); padding: 16px 18px;
+}
+.kpi .label {
+  font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.12em;
+  color: var(--text-muted);
+}
+.kpi .value {
+  font-family: var(--font-serif); font-size: 1.8rem;
+  color: var(--accent-text); margin-top: 4px;
+}
+
+.table-wrap {
+  max-width: 1400px; margin: 20px auto 60px; padding: 0 24px;
+  overflow-x: auto;
+}
+table {
+  width: 100%; border-collapse: separate; border-spacing: 0 8px;
+  min-width: 1100px;
+}
+thead th {
+  text-align: left; font-size: 0.7rem; text-transform: uppercase;
+  letter-spacing: 0.1em; color: var(--text-muted);
+  padding: 0 12px 8px; font-weight: 500;
+}
+tbody tr { background: var(--surface); transition: background 0.2s; }
+tbody tr:hover { background: var(--surface-2); }
+tbody td {
+  padding: 14px 12px; font-size: 0.85rem; vertical-align: top;
+  border-top: 1px solid rgba(255,255,255,0.05);
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+tbody td:first-child {
+  border-left: 1px solid rgba(255,255,255,0.05);
+  border-radius: var(--radius) 0 0 var(--radius);
+}
+tbody td:last-child {
+  border-right: 1px solid rgba(255,255,255,0.05);
+  border-radius: 0 var(--radius) var(--radius) 0;
+}
+.pedido-id { font-weight: 600; color: var(--accent-text); }
+.cliente-nome { font-weight: 500; }
+.cliente-tel { font-size: 0.75rem; color: var(--text-muted); }
+.itens-lista { list-style: none; padding: 0; margin: 0; }
+.itens-lista li { font-size: 0.8rem; margin-bottom: 3px; }
+.itens-lista .qtd { color: var(--accent-text); font-weight: 600; }
+.total-cell {
+  font-family: var(--font-serif); font-size: 1.1rem;
+  color: var(--accent-text); white-space: nowrap;
+}
+.endereco-cell { font-size: 0.78rem; color: var(--text-muted); max-width: 220px; }
+.endereco-cell .rotulo { color: var(--text); font-weight: 500; }
+
+.status-select {
+  appearance: none;
+  border: none;
+  padding: 6px 24px 6px 10px;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%239BA0A5' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+}
+.status-pendente { background-color: rgba(217,162,74,0.18); color: var(--accent-text); }
+.status-preparando { background-color: rgba(90,150,220,0.18); color: #7FB3E8; }
+.status-entrega { background-color: rgba(150,120,220,0.18); color: #B79EE8; }
+.status-entregue { background-color: rgba(70,160,110,0.18); color: #6FC79A; }
+.status-cancelado { background-color: rgba(200,90,80,0.18); color: #E8806F; }
+
+.acoes { display: flex; gap: 6px; }
+.btn-wa {
+  width: 38px; height: 38px; border-radius: 50%; border: none;
+  background: #25D366; color: #fff;
+  display: inline-flex; align-items: center; justify-content: center;
+  transition: transform 0.15s;
+}
+.btn-wa:hover { transform: scale(1.08); }
+.btn-wa:disabled { opacity: 0.35; cursor: not-allowed; }
+.btn-wa svg { width: 20px; height: 20px; }
+.btn-mini {
+  height: 38px; padding: 0 12px; border-radius: 999px;
+  border: 1px solid var(--border); background: transparent;
+  color: var(--text); font-size: 0.75rem;
+}
+.btn-mini:hover { border-color: var(--accent); color: var(--accent-text); }
+
+.empty-state {
+  text-align: center; color: var(--text-muted);
+  padding: 60px 20px; font-size: 0.9rem;
+}
+
+#cupomArea { display: none; }
+
+@media print {
+  body * { visibility: hidden; }
+  #cupomArea, #cupomArea * { visibility: visible; }
+  #cupomArea {
+    display: block; position: absolute; left: 0; top: 0;
+    width: 80mm; padding: 4mm;
+    font-family: 'Courier New', monospace; font-size: 11px; color: #000;
+  }
+  .cupom-titulo { text-align: center; font-size: 14px; font-weight: bold; margin-bottom: 6px; }
+  .cupom-linha { border-top: 1px dashed #000; margin: 6px 0; }
+  .cupom-item { display: flex; justify-content: space-between; margin-bottom: 2px; }
+  .cupom-total { font-weight: bold; font-size: 13px; }
+}
+</style>
+</head>
+<body>
+
+<header class="app-header">
+  <div class="wordmark">monta<span>ê</span> · pedidos</div>
+  <div class="header-right">
+    <span class="live-dot" id="liveStatus">ao vivo</span>
+    <button class="btn-mini" id="btnSom">🔔 Som: ligado</button>
+  </div>
+</header>
+
+<div class="kpis">
+  <div class="kpi">
+    <div class="label">Pedidos hoje</div>
+    <div class="value" id="kpiHoje">0</div>
+  </div>
+  <div class="kpi">
+    <div class="label">Faturamento do dia</div>
+    <div class="value" id="kpiFaturamento">R$ 0,00</div>
+  </div>
+  <div class="kpi">
+    <div class="label">Pendentes</div>
+    <div class="value" id="kpiPendentes">0</div>
+  </div>
+</div>
+
+<div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th>Pedido</th>
+        <th>Cliente</th>
+        <th>Itens</th>
+        <th>Total</th>
+        <th>Endereço</th>
+        <th>Status</th>
+        <th>Horário</th>
+        <th>Ações</th>
+      </tr>
+    </thead>
+    <tbody id="corpoTabela">
+      <tr><td colspan="8" class="empty-state">Carregando pedidos...</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<div id="cupomArea"></div>
+
+<script src="js/config.js"></script>
+<script type="module" src="js/pedidos.js"></script>
+</body>
+</html>
