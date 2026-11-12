@@ -275,7 +275,7 @@ function renderReceitas() {
         <div style="font-family:var(--font-serif); font-size:1.1rem;">${esc(r.nome)}</div>
         <div class="meta">${esc(r.descricao || '')}</div>
       </div>
-      <span style="color:var(--accent-text);">${fmt(r.preco)}</span>
+      <span style="color:var(--accent-text);">${fmt(Number(r.preco) + precoBase)}</span>
     </button>
   `).join('') || '<p class="empty-state">Nenhuma receita cadastrada.</p>';
 }
