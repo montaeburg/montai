@@ -188,7 +188,7 @@ function montarMensagem(p) {
   const end = p.endereco_snapshot || {};
   const linhas = [];
 
-  linhas.push(`*Pedido #${p.id.slice(0, 6)} — montaê*`);
+  linhas.push(`*Pedido #${p.id.slice(0, 6)} — montaí*`);
   linhas.push('');
   linhas.push('*Itens:*');
 
