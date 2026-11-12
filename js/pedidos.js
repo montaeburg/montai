@@ -22,6 +22,7 @@ let pedidos = [];
 let somLigado = true;
 let ultimoPedidoImpresso = null;
 let mapaCamadas = {};
+let retiradaAtiva = false;
 
 // ============ CARREGAR NOMES E CAMADAS ============
 async function carregarNomes() {
@@ -72,6 +73,51 @@ function ordenarExtras(camadas, inclusos) {
     if (pa !== pb) return pa - pb;
     return a.ordem - b.ordem;
   });
+}
+
+// ============ RETIRADA (configuração) ============
+async function carregarRetirada() {
+  const { data, error } = await supabase
+    .from('configuracoes')
+    .select('valor')
+    .eq('chave', 'retirada_ativa')
+    .maybeSingle();
+
+  if (error) {
+    console.error('Erro ao ler retirada_ativa:', error.message);
+    return;
+  }
+
+  retiradaAtiva = data ? String(data.valor).toLowerCase() === 'true' : false;
+  atualizarBotaoRetirada();
+}
+
+function atualizarBotaoRetirada() {
+  const btn = $('btnRetirada');
+  if (!btn) return;
+  btn.textContent = retiradaAtiva ? 'Retirada: ativada' : 'Retirada: desativada';
+  btn.classList.toggle('ativo', retiradaAtiva);
+}
+
+async function alternarRetirada() {
+  const novo = !retiradaAtiva;
+
+  const { error } = await supabase
+    .from('configuracoes')
+    .upsert(
+      { chave: 'retirada_ativa', valor: novo ? 'true' : 'false' },
+      { onConflict: 'chave' }
+    );
+
+  if (error) {
+    console.error('Erro ao salvar retirada_ativa:', error.message);
+    alert('Não foi possível alterar a retirada.');
+    return;
+  }
+
+  retiradaAtiva = novo;
+  atualizarBotaoRetirada();
+  console.log('Retirada agora:', retiradaAtiva ? 'ativada' : 'desativada');
 }
 
 // ============ CARREGAR PEDIDOS ============
@@ -352,9 +398,12 @@ $('btnSom').addEventListener('click', () => {
   $('btnSom').textContent = somLigado ? '🔔 Som: ligado' : '🔕 Som: desligado';
 });
 
+$('btnRetirada').addEventListener('click', alternarRetirada);
+
 // ============ INIT ============
 (async () => {
   await carregarNomes();
+  await carregarRetirada();
   await carregarPedidos();
   assinarRealtime();
 })();
