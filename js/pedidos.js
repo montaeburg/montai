@@ -258,7 +258,7 @@ function montarMensagem(p) {
   const end = p.endereco_snapshot || {};
   const linhas = [];
 
-  linhas.push(`*Pedido #${p.id.slice(0, 6)} — montaê*`);
+  linhas.push(`*Pedido #${p.id.slice(0, 6)} — montaí*`);
   linhas.push('');
   linhas.push('*Itens:*');
 
@@ -324,7 +324,7 @@ function imprimirCupom(p) {
        <div>${esc(end.cidade || '')}/${esc(end.estado || '')}</div>`;
 
   $('cupomArea').innerHTML = `
-    <div class="cupom-titulo">montaê</div>
+    <div class="cupom-titulo">montaí</div>
     <div style="text-align:center;font-size:10px">Pedido #${p.id.slice(0, 6)}</div>
     <div style="text-align:center;font-size:10px">${new Date(p.criado_em).toLocaleString('pt-BR')}</div>
     <div class="cupom-linha"></div>
