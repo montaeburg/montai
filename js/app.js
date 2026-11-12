@@ -232,7 +232,6 @@ function renderEtapa() {
     if (el) el.style.display = (p === etapaCheckout) ? 'block' : 'none';
   });
 
-  // Indicador de progresso
   const idx = passos.indexOf(etapaCheckout);
   document.querySelectorAll('.step-dot').forEach((d, i) => {
     d.classList.toggle('active', i === idx);
@@ -275,9 +274,10 @@ function renderBatata() {
 }
 
 function atualizarQtdBatata() {
-  const total = qtdBatata;
   const label = $('batataTotal');
-  if (label) label.textContent = total > 0 ? `${total} porção${total > 1 ? 'ões' : ''}` : '';
+  if (label) label.textContent = qtdBatata > 0
+    ? `${qtdBatata} porção${qtdBatata > 1 ? 'ões' : ''}`
+    : '';
 }
 
 function renderBebidas() {
@@ -429,12 +429,14 @@ function renderChips() {
 
 function renderInclusos() {
   $('listaInclusos').innerHTML = catalogo.inclusos.map(i => `
-    <label class="incluso-row">
+    <label class="incluso-chip ${montagem.inclusos[i.id] ? 'selected' : ''}">
       <input type="checkbox" data-incluso="${i.id}" ${montagem.inclusos[i.id] ? 'checked' : ''}>
-      <span class="check-box">
-        <svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5 L5 9 L10 3" stroke="#0A0A0A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span class="chip-check">
+        <svg viewBox="0 0 12 12" fill="none">
+          <path d="M2 6.5 L5 9 L10 3" stroke="#0A0A0A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
       </span>
-      <span class="incluso-label">${esc(i.nome)}</span>
+      <span>${esc(i.nome)}</span>
     </label>
   `).join('');
 }
@@ -874,6 +876,8 @@ function configurarEventos() {
     const cb = e.target.closest('input[data-incluso]');
     if (!cb) return;
     montagem.inclusos[cb.dataset.incluso] = cb.checked;
+    const chip = cb.closest('.incluso-chip');
+    if (chip) chip.classList.toggle('selected', cb.checked);
     renderBurger();
     renderResumo();
     atualizarTotais();
@@ -963,7 +967,7 @@ function configurarEventos() {
     abrirLogin(!modoCadastro);
   });
 
-  // Receitas
+  // Menu / receitas
   $('btnReceitas').addEventListener('click', () => {
     renderReceitas();
     $('receitasOverlay').classList.add('open');
@@ -1007,15 +1011,25 @@ function configurarEventos() {
 
   // Perfil
   $('btnPerfil').addEventListener('click', abrirPerfil);
-  if ($('btnSair')) {
-    $('btnSair').addEventListener('click', async () => {
-      await supabase.auth.signOut();
+
+  const btnSair = $('btnSair');
+  if (btnSair) {
+    btnSair.addEventListener('click', async (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      try {
+        await supabase.auth.signOut();
+      } catch (err) {
+        console.error('Erro ao sair:', err);
+      }
       usuario = null;
       enderecos = [];
       enderecoSelecionado = null;
       $('perfilOverlay').classList.remove('open');
       toast('Você saiu');
     });
+  } else {
+    console.warn('btnSair não encontrado no DOM');
   }
 
   // Fechar modais
