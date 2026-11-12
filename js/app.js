@@ -74,8 +74,10 @@ function setQtd(id, qtd) {
 }
 
 function precoMontagem() {
-  let total = 0;
+  let total = precoBase;
   Object.entries(montagem.camadas).forEach(([id, q]) => {
+    // Pão já está no preço base
+    if (id === 'pao-baixo' || id === 'pao-cima') return;
     const ing = catalogo.ingredientes.find(i => i.id === id);
     if (ing) total += Number(ing.preco) * q;
   });
