@@ -18,6 +18,7 @@ let modoCadastro = false;
 
 let enderecos = [];
 let enderecoSelecionado = null;
+let bairros = [];
 
 let etapaCheckout = 'batata';
 let qtdBatata = 0;
@@ -33,6 +34,8 @@ let retiradaAtiva = false;
 let tipoEntrega = 'entrega';
 
 let taxaPadrao = 5.00;
+let cidadeFixa = 'Paulo Afonso';
+let estadoFixo = 'BA';
 
 const IMG_VERSION = Date.now();
 
@@ -109,8 +112,40 @@ async function carregarConfiguracoes() {
       retiradaAtiva = (v === 'true' || v === '1' || v === 'sim');
     }
     if (c.chave === 'taxa_entrega_padrao') taxaPadrao = Number(c.valor) || 5.00;
+    if (c.chave === 'cidade_fixa') cidadeFixa = c.valor;
+    if (c.chave === 'estado_fixo') estadoFixo = c.valor;
   });
+
+  if ($('endCidade')) $('endCidade').value = cidadeFixa;
+  if ($('endEstado')) $('endEstado').value = estadoFixo;
+
   console.log('precoBase:', precoBase, '| retiradaAtiva:', retiradaAtiva, '| taxaPadrao:', taxaPadrao);
+}
+
+// ============ BAIRROS ============
+async function carregarBairros() {
+  const { data, error } = await supabase
+    .from('bairros')
+    .select('id, nome, taxa_entrega')
+    .eq('ativo', true)
+    .order('ordem');
+
+  if (error) { console.error('ERRO em bairros:', error.message); return; }
+
+  bairros = data || [];
+
+  const sel = $('endBairro');
+  if (sel) {
+    sel.innerHTML = '<option value="">Selecione o bairro</option>' +
+      bairros.map(b => `<option value="${b.id}">${esc(b.nome)} — ${fmt(b.taxa_entrega)}</option>`).join('');
+  }
+
+  console.log('bairros:', bairros.length);
+}
+
+function taxaDoBairro(nomeBairro) {
+  const b = bairros.find(x => x.nome === nomeBairro);
+  return b ? Number(b.taxa_entrega) : taxaPadrao;
 }
 
 async function carregarPrecosReceitas() {
@@ -177,7 +212,7 @@ function renderEnderecosModal() {
         <input type="radio" name="tipoEntrega" value="retirada" ${tipoEntrega === 'retirada' ? 'checked' : ''}>
         <div>
           <div class="endereco-rotulo">Retirada no local</div>
-          <div class="meta">Você busca o pedido no balcão</div>
+          <div class="meta">Você busca o pedido no balcão — sem taxa</div>
         </div>
       </label>
     `;
@@ -186,16 +221,20 @@ function renderEnderecosModal() {
   if (!enderecos.length) {
     html += '<p class="empty-state">Nenhum endereço salvo. Cadastre o primeiro abaixo.</p>';
   } else {
-    html += enderecos.map(e => `
-      <label class="endereco-card ${tipoEntrega === 'entrega' && enderecoSelecionado === e.id ? 'selected' : ''}">
-        <input type="radio" name="tipoEntrega" value="${e.id}" ${tipoEntrega === 'entrega' && enderecoSelecionado === e.id ? 'checked' : ''}>
-        <div>
-          <div class="endereco-rotulo">${esc(e.rotulo || 'Casa')}</div>
-          <div class="meta">${esc(e.rua || '')}, ${esc(e.numero || '')} — ${esc(e.bairro || '')}</div>
-          <div class="meta">${esc(e.cidade || '')}/${esc(e.estado || '')} · CEP ${esc(e.cep || '')}</div>
-        </div>
-      </label>
-    `).join('');
+    html += enderecos.map(e => {
+      const taxa = taxaDoBairro(e.bairro);
+      return `
+        <label class="endereco-card ${tipoEntrega === 'entrega' && enderecoSelecionado === e.id ? 'selected' : ''}">
+          <input type="radio" name="tipoEntrega" value="${e.id}" ${tipoEntrega === 'entrega' && enderecoSelecionado === e.id ? 'checked' : ''}>
+          <div>
+            <div class="endereco-rotulo">${esc(e.rotulo || 'Casa')}</div>
+            <div class="meta">${esc(e.rua || '')}, ${esc(e.numero || '')} — ${esc(e.bairro || '')}</div>
+            <div class="meta">${esc(e.cidade || cidadeFixa)}/${esc(e.estado || estadoFixo)} · CEP ${esc(e.cep || '')}</div>
+            <div class="meta" style="color:var(--accent-text)">Taxa: ${fmt(taxa)}</div>
+          </div>
+        </label>
+      `;
+    }).join('');
   }
 
   host.innerHTML = html;
@@ -205,6 +244,24 @@ function renderEnderecosModal() {
 
   const btnNovo = $('btnNovoEndereco');
   if (btnNovo) btnNovo.style.display = enderecos.length ? 'inline-flex' : 'none';
+
+  atualizarTaxaEndereco();
+}
+
+function atualizarTaxaEndereco() {
+  const label = $('taxaEnderecoLabel');
+  if (!label) return;
+
+  if (tipoEntrega === 'retirada') {
+    label.textContent = 'Retirada no local — sem taxa de entrega';
+    return;
+  }
+
+  const end = enderecos.find(x => x.id === enderecoSelecionado);
+  if (!end) { label.textContent = ''; return; }
+
+  const taxa = taxaDoBairro(end.bairro);
+  label.textContent = `Taxa de entrega (${end.bairro}): ${fmt(taxa)}`;
 }
 
 async function salvarEndereco() {
@@ -214,20 +271,23 @@ async function salvarEndereco() {
   const cep = ($('endCep')?.value || '').trim();
   const rua = ($('endRua')?.value || '').trim();
   const numero = ($('endNumero')?.value || '').trim();
-  const bairro = ($('endBairro')?.value || '').trim();
-  const cidade = ($('endCidade')?.value || '').trim();
-  const estado = ($('endEstado')?.value || '').trim();
+  const bairroId = $('endBairro')?.value || '';
 
-  if (!cep || !rua || !numero || !bairro || !cidade || !estado) {
-    toast('Preencha todos os campos do endereço.');
+  if (!cep || !rua || !numero || !bairroId) {
+    toast('Preencha CEP, rua, número e bairro.');
     return;
   }
+
+  const bairro = bairros.find(b => b.id === bairroId);
+  if (!bairro) { toast('Bairro inválido.'); return; }
 
   const { data, error } = await supabase.from('enderecos').insert({
     user_id: usuario.id,
     rotulo, cep, rua, numero,
     complemento: ($('endComplemento')?.value || '').trim(),
-    bairro, cidade, estado,
+    bairro: bairro.nome,
+    cidade: cidadeFixa,
+    estado: estadoFixo,
     principal: enderecos.length === 0
   }).select().single();
 
@@ -864,24 +924,29 @@ async function finalizarPedido(e) {
   if (!carrinho.itens.length) { toast('Carrinho vazio.'); return; }
 
   let endereco = null;
+  let taxa = 0;
 
   if (tipoEntrega === 'retirada') {
     endereco = { rotulo: 'Retirada no local', tipo: 'retirada' };
+    taxa = 0;
   } else {
     if (!enderecoSelecionado) { toast('Escolha ou cadastre um endereço.'); return; }
     const end = enderecos.find(x => x.id === enderecoSelecionado);
     if (!end) { toast('Endereço inválido.'); return; }
+
     endereco = {
       rotulo: end.rotulo,
       cep: end.cep, rua: end.rua, numero: end.numero,
       complemento: end.complemento, bairro: end.bairro,
-      cidade: end.cidade, estado: end.estado,
+      cidade: end.cidade || cidadeFixa,
+      estado: end.estado || estadoFixo,
       tipo: 'entrega'
     };
+
+    taxa = taxaDoBairro(end.bairro);
   }
 
   const subtotal = carrinho.itens.reduce((s, i) => s + i.preco, 0);
-  const taxa = tipoEntrega === 'retirada' ? 0 : taxaPadrao;
   const total = subtotal + taxa;
 
   const { data: pedido, error: errPed } = await supabase.from('pedidos').insert({
@@ -918,6 +983,8 @@ async function finalizarPedido(e) {
   carrinho.itens = [];
   $('checkoutOverlay').classList.remove('open');
   if ($('enderecoForm')) $('enderecoForm').reset();
+  if ($('endCidade')) $('endCidade').value = cidadeFixa;
+  if ($('endEstado')) $('endEstado').value = estadoFixo;
   renderCarrinho();
   toast('Pedido realizado!');
 }
@@ -1105,8 +1172,10 @@ function configurarEventos() {
     $('drawerBackdrop').classList.remove('open');
   });
 
-  document.querySelectorAll('#endCep').forEach(inp => {
-    inp.addEventListener('blur', async e => {
+  // ViaCEP: preenche apenas a rua. Bairro vem do select, cidade/estado são fixos.
+  const cepInput = $('endCep');
+  if (cepInput) {
+    cepInput.addEventListener('blur', async e => {
       const cep = e.target.value.replace(/\D/g, '');
       if (cep.length !== 8) return;
       try {
@@ -1114,12 +1183,22 @@ function configurarEventos() {
         const d = await r.json();
         if (d.erro) return;
         if ($('endRua')) $('endRua').value = d.logradouro || '';
-        if ($('endBairro')) $('endBairro').value = d.bairro || '';
-        if ($('endCidade')) $('endCidade').value = d.localidade || '';
-        if ($('endEstado')) $('endEstado').value = d.uf || '';
       } catch {}
     });
-  });
+  }
+
+  // Atualiza a taxa exibida ao trocar o bairro no formulário
+  if ($('endBairro')) {
+    $('endBairro').addEventListener('change', e => {
+      const b = bairros.find(x => x.id === e.target.value);
+      const label = $('taxaEnderecoLabel');
+      if (label) {
+        label.textContent = b
+          ? `Taxa de entrega (${b.nome}): ${fmt(b.taxa_entrega)}`
+          : '';
+      }
+    });
+  }
 }
 
 // ============ INIT ============
@@ -1127,6 +1206,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   try {
     await carregarCatalogo();
     await carregarConfiguracoes();
+    await carregarBairros();
     await carregarPrecosReceitas();
     montagemPadrao();
     await verificarSessao();
