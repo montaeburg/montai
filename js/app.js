@@ -20,7 +20,7 @@ let enderecos = [];
 let enderecoSelecionado = null;
 let bairros = [];
 
-let etapaCheckout = 'batata';
+let etapaCheckout = 'extras';
 let qtdBatata = 0;
 let bebidaSelecionada = null;
 
@@ -246,6 +246,7 @@ function renderEnderecosModal() {
   if (btnNovo) btnNovo.style.display = enderecos.length ? 'inline-flex' : 'none';
 
   atualizarTaxaEndereco();
+  atualizarResumoCheckout();
 }
 
 function atualizarTaxaEndereco() {
@@ -262,6 +263,30 @@ function atualizarTaxaEndereco() {
 
   const taxa = taxaDoBairro(end.bairro);
   label.textContent = `Taxa de entrega (${end.bairro}): ${fmt(taxa)}`;
+}
+
+// ============ RESUMO DE VALORES NO CHECKOUT ============
+function calcularTaxaAtual() {
+  if (tipoEntrega === 'retirada') return 0;
+  const end = enderecos.find(x => x.id === enderecoSelecionado);
+  if (!end) return 0;
+  return taxaDoBairro(end.bairro);
+}
+
+function atualizarResumoCheckout() {
+  const subEl = $('resumoSubtotal');
+  const taxaEl = $('resumoTaxa');
+  const totEl = $('resumoTotal');
+  if (!subEl || !taxaEl || !totEl) return;
+
+  const subtotal = carrinho.itens.reduce((s, i) => s + i.preco, 0);
+  const taxa = calcularTaxaAtual();
+
+  subEl.textContent = fmt(subtotal);
+  taxaEl.textContent = tipoEntrega === 'retirada'
+    ? 'Grátis'
+    : (taxa > 0 ? fmt(taxa) : 'A confirmar');
+  totEl.textContent = fmt(subtotal + taxa);
 }
 
 async function salvarEndereco() {
@@ -301,7 +326,7 @@ async function salvarEndereco() {
 
 // ============ CHECKOUT EM ETAPAS ============
 function abrirCheckout() {
-  etapaCheckout = 'batata';
+  etapaCheckout = 'extras';
   qtdBatata = 0;
   bebidaSelecionada = null;
   tipoEntrega = 'entrega';
@@ -310,9 +335,11 @@ function abrirCheckout() {
 }
 
 function renderEtapa() {
-  const passos = ['batata', 'bebida', 'endereco'];
+  const passos = ['extras', 'endereco'];
+  const mapa = { extras: 'etapaExtras', endereco: 'etapaEndereco' };
+
   passos.forEach(p => {
-    const el = $('etapa' + p.charAt(0).toUpperCase() + p.slice(1));
+    const el = $(mapa[p]);
     if (el) el.style.display = (p === etapaCheckout) ? 'block' : 'none';
   });
 
@@ -322,9 +349,14 @@ function renderEtapa() {
     d.classList.toggle('done', i < idx);
   });
 
-  if (etapaCheckout === 'batata') renderBatata();
-  if (etapaCheckout === 'bebida') renderBebidas();
-  if (etapaCheckout === 'endereco') renderEnderecosModal();
+  if (etapaCheckout === 'extras') {
+    renderBatata();
+    renderBebidas();
+  }
+  if (etapaCheckout === 'endereco') {
+    renderEnderecosModal();
+    atualizarResumoCheckout();
+  }
 }
 
 function renderBatata() {
@@ -347,7 +379,7 @@ function renderBatata() {
       <div class="upsell-ctrl">
         <div class="qty-control">
           <button type="button" data-bat-dec="${x.id}">−</button>
-          <span id="batQtd-${x.id}">0</span>
+          <span id="batQtd-${x.id}">${qtdBatata}</span>
           <button type="button" data-bat-inc="${x.id}">+</button>
         </div>
       </div>
@@ -391,7 +423,7 @@ function irParaEtapa(etapa) {
   renderEtapa();
 }
 
-function confirmarBatata() {
+function confirmarExtras() {
   if (qtdBatata > 0) {
     const batata = catalogo.extras[0];
     if (batata) {
@@ -407,10 +439,7 @@ function confirmarBatata() {
       renderCarrinho();
     }
   }
-  irParaEtapa('bebida');
-}
 
-function confirmarBebida() {
   if (bebidaSelecionada) {
     const b = catalogo.bebidas.find(x => x.id === bebidaSelecionada);
     if (b) {
@@ -426,6 +455,7 @@ function confirmarBebida() {
       renderCarrinho();
     }
   }
+
   irParaEtapa('endereco');
 }
 
@@ -1056,8 +1086,12 @@ function configurarEventos() {
     });
   }
 
-  if ($('btnBatataContinuar')) $('btnBatataContinuar').addEventListener('click', confirmarBatata);
-  if ($('btnBatataPular')) $('btnBatataPular').addEventListener('click', () => { qtdBatata = 0; irParaEtapa('bebida'); });
+  if ($('btnExtrasContinuar')) $('btnExtrasContinuar').addEventListener('click', confirmarExtras);
+  if ($('btnExtrasPular')) $('btnExtrasPular').addEventListener('click', () => {
+    qtdBatata = 0;
+    bebidaSelecionada = null;
+    irParaEtapa('endereco');
+  });
 
   if ($('listaBebidas')) {
     $('listaBebidas').addEventListener('change', e => {
@@ -1066,11 +1100,7 @@ function configurarEventos() {
     });
   }
 
-  if ($('btnBebidaContinuar')) $('btnBebidaContinuar').addEventListener('click', confirmarBebida);
-  if ($('btnBebidaPular')) $('btnBebidaPular').addEventListener('click', () => { bebidaSelecionada = null; irParaEtapa('endereco'); });
-
-  if ($('btnVoltarBebida')) $('btnVoltarBebida').addEventListener('click', () => irParaEtapa('batata'));
-  if ($('btnVoltarEndereco')) $('btnVoltarEndereco').addEventListener('click', () => irParaEtapa('bebida'));
+  if ($('btnVoltarEndereco')) $('btnVoltarEndereco').addEventListener('click', () => irParaEtapa('extras'));
 
   if ($('listaEnderecos')) {
     $('listaEnderecos').addEventListener('change', e => {
