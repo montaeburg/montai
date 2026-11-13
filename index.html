@@ -33,7 +33,6 @@ html, body {
 }
 button { font-family: inherit; cursor: pointer; }
 input, textarea { font-family: inherit; }
-
 /* Header */
 .app-header {
   position: fixed; top: 0; left: 0; right: 0; height: 64px; z-index: 50;
@@ -59,7 +58,6 @@ input, textarea { font-family: inherit; }
   font-size: 0.6rem; font-weight: 600;
   display: inline-flex; align-items: center; justify-content: center;
 }
-
 /* Botão MENU com texto */
 .menu-btn {
   height: 40px; padding: 0 16px; border-radius: 999px;
@@ -71,7 +69,6 @@ input, textarea { font-family: inherit; }
 }
 .menu-btn:hover { background: rgba(217,162,74,0.12); color: var(--accent-text); }
 .menu-btn svg { width: 18px; height: 18px; }
-
 /* Layout */
 .app-main {
   margin-top: 64px; display: grid;
@@ -91,7 +88,6 @@ input, textarea { font-family: inherit; }
   transition: all 0.2s;
 }
 .chip:hover, .chip.active { background: var(--accent); color: #0A0A0A; border-color: var(--accent); }
-
 /* Inclusos como chips/pílulas */
 .inclusos-chips {
   display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 4px;
@@ -118,7 +114,6 @@ input, textarea { font-family: inherit; }
 }
 .incluso-chip.selected .chip-check svg { opacity: 1; }
 .incluso-chip input { position: absolute; opacity: 0; pointer-events: none; }
-
 /* Ingredientes */
 .ingredient-row {
   display: flex; align-items: center; justify-content: space-between; gap: 10px;
@@ -151,7 +146,6 @@ input, textarea { font-family: inherit; }
   background: var(--accent); color: #0A0A0A; font-size: 1rem;
 }
 .qty-control span { min-width: 22px; text-align: center; font-weight: 600; font-size: 0.8125rem; }
-
 /* Preview */
 .preview-col { position: sticky; top: 88px; align-self: start; }
 .preview-card {
@@ -163,7 +157,6 @@ input, textarea { font-family: inherit; }
   position: relative; width: 100%; aspect-ratio: 1/1.15;
   display: flex; align-items: center; justify-content: center;
 }
-
 /* ===== EMPILHAMENTO ===== */
 .stack-burger {
   position: relative;
@@ -190,7 +183,6 @@ input, textarea { font-family: inherit; }
   to   { opacity: 1; }
 }
 .empty-stage { color: #4A443C; font-size: 0.9rem; text-align: center; padding: 40px 20px; }
-
 /* Resumo */
 .summary-card {
   margin-top: 16px; border: 1px solid var(--border); border-radius: var(--radius);
@@ -217,7 +209,6 @@ input, textarea { font-family: inherit; }
   font-family: var(--font-serif); font-size: 2.2rem;
   color: var(--accent-text); font-variant-numeric: tabular-nums; line-height: 1;
 }
-
 /* Observações */
 .obs-field { margin-top: 16px; display: flex; flex-direction: column; gap: 6px; }
 .obs-field label { font-size: 0.8rem; color: var(--text-muted); }
@@ -227,7 +218,6 @@ input, textarea { font-family: inherit; }
   padding: 10px 12px; font-size: 0.875rem; min-height: 78px; resize: vertical;
 }
 .obs-counter { align-self: flex-end; font-size: 0.72rem; color: var(--text-muted); }
-
 /* Footer */
 .app-footer {
   position: fixed; left: 0; right: 0; bottom: 0; z-index: 40;
@@ -248,7 +238,6 @@ input, textarea { font-family: inherit; }
   color: var(--accent-text); font-variant-numeric: tabular-nums;
 }
 .footer-actions { display: flex; gap: 8px; align-items: center; }
-
 /* Botões de ícone do rodapé */
 .foot-icon-btn {
   width: 44px; height: 44px; padding: 0; border-radius: 50%;
@@ -262,7 +251,6 @@ input, textarea { font-family: inherit; }
   background: var(--accent); border-color: var(--accent); color: #0A0A0A;
 }
 .foot-icon-btn.solid:hover { background: var(--accent-text); color: #0A0A0A; }
-
 .btn-solid, .btn-outline, .btn-ghost {
   padding: 11px 18px; border-radius: 999px; font-size: 0.85rem;
   border: 1px solid var(--border); transition: all 0.2s;
@@ -275,7 +263,6 @@ input, textarea { font-family: inherit; }
 .btn-ghost:hover { color: var(--accent-text); }
 #checkout { background: #2E7D4F; color: #fff; border-color: #2E7D4F; }
 #checkout:hover { background: #36A05F; }
-
 /* Modais */
 .overlay {
   position: fixed; inset: 0; background: rgba(0,0,0,0.65); z-index: 80;
@@ -301,16 +288,36 @@ input, textarea { font-family: inherit; }
 .close-x:hover { color: var(--accent-text); }
 .form-field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
 .form-field label { font-size: 0.8rem; color: var(--text-muted); }
-.form-field input {
+.form-field input, .form-field select {
   background: #2B2E31; border: 1px solid rgba(255,255,255,0.08);
   color: var(--text); border-radius: 10px; padding: 11px 13px; font-size: 0.9rem;
 }
-.form-field input:focus { outline: 2px solid var(--accent-text); outline-offset: 1px; }
+.form-field input:focus, .form-field select:focus { outline: 2px solid var(--accent-text); outline-offset: 1px; }
+.form-field select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' stroke='%239BA0A5' stroke-width='1.6' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 13px center;
+  padding-right: 36px;
+  cursor: pointer;
+}
+/* Campos travados (cidade e estado) */
+.form-field input[readonly] {
+  background: rgba(255,255,255,0.035);
+  color: var(--text-muted);
+  cursor: not-allowed;
+  border-style: dashed;
+}
+.taxa-endereco-label {
+  font-size: 0.8rem;
+  color: var(--accent-text);
+  padding: 2px 0 12px;
+  min-height: 18px;
+}
 .modal footer { display: flex; gap: 10px; margin-top: 18px; }
 .modal footer button { flex: 1; }
 .error-msg { display: none; margin: 8px 0 0; font-size: 0.8rem; color: #E8806F; }
 .error-msg.show { display: block; }
-
 /* Etapas do checkout */
 .steps-bar {
   display: flex; align-items: center; justify-content: center; gap: 8px;
@@ -325,7 +332,6 @@ input, textarea { font-family: inherit; }
 .step-dot.active { background: var(--accent); color: #0A0A0A; border-color: var(--accent); font-weight: 600; }
 .step-dot.done { background: rgba(217,162,74,0.25); color: var(--accent-text); border-color: var(--accent); }
 .step-line { width: 24px; height: 1px; background: var(--border); }
-
 /* Upsell batata */
 .upsell-card {
   display: flex; align-items: center; gap: 14px;
@@ -342,7 +348,6 @@ input, textarea { font-family: inherit; }
 .upsell-desc { font-size: 0.78rem; color: var(--text-muted); margin-top: 2px; }
 .upsell-preco { font-size: 0.9rem; color: var(--accent-text); margin-top: 4px; font-weight: 500; }
 .upsell-ctrl { flex-shrink: 0; }
-
 /* Bebidas */
 .bebida-card {
   display: flex; align-items: center; gap: 14px;
@@ -361,7 +366,6 @@ input, textarea { font-family: inherit; }
 .bebida-nome { font-weight: 500; font-size: 0.9rem; }
 .bebida-tam { font-size: 0.75rem; color: var(--text-muted); }
 .bebida-preco { font-size: 0.85rem; color: var(--accent-text); margin-top: 2px; }
-
 /* Endereços */
 .endereco-card {
   display: flex; align-items: flex-start; gap: 10px;
@@ -379,7 +383,6 @@ input, textarea { font-family: inherit; }
 .endereco-card .meta { font-size: 0.78rem; color: var(--text-muted); }
 #btnNovoEndereco { width: 100%; margin-bottom: 12px; }
 #formNovoEndereco { display: none; }
-
 /* Perfil */
 .perfil-head {
   display: flex; flex-direction: column; gap: 2px;
@@ -398,7 +401,6 @@ input, textarea { font-family: inherit; }
 .status-entrega { background: rgba(150,120,220,0.18); color: #B79EE8; }
 .status-entregue { background: rgba(70,160,110,0.18); color: #6FC79A; }
 .status-cancelado { background: rgba(200,90,80,0.18); color: #E8806F; }
-
 /* Drawer */
 .drawer {
   position: fixed; top: 0; right: 0; bottom: 0; width: 100%; max-width: 420px;
@@ -422,7 +424,6 @@ input, textarea { font-family: inherit; }
 }
 .drawer-item .meta { font-size: 0.78rem; color: var(--text-muted); }
 .empty-state { text-align: center; color: var(--text-muted); font-size: 0.88rem; padding: 30px 10px; }
-
 /* Toast */
 .toast-host {
   position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%);
@@ -434,11 +435,9 @@ input, textarea { font-family: inherit; }
   box-shadow: 0 10px 30px rgba(0,0,0,0.5); animation: layerFade 0.3s ease both;
   white-space: nowrap;
 }
-
 /* Responsivo */
 @media (max-width: 899px) {
   :root { --overlap: 6%; }
-
   .app-main { grid-template-columns: 1fr; gap: 16px; padding: 14px 12px 96px; }
   .preview-col { position: sticky; top: 56px; z-index: 30; background: #0A0A0A; padding-bottom: 6px; }
   .preview-card { padding: 10px; overflow: visible; }
@@ -463,7 +462,6 @@ input, textarea { font-family: inherit; }
 </style>
 </head>
 <body>
-
 <header class="app-header">
   <div class="logo">
     <svg viewBox="0 0 48 48" fill="none" aria-hidden="true">
@@ -500,7 +498,6 @@ input, textarea { font-family: inherit; }
     </button>
   </div>
 </header>
-
 <main class="app-main">
   <section>
     <h1 class="page-title">Monte seu hambúrguer</h1>
@@ -514,7 +511,6 @@ input, textarea { font-family: inherit; }
       <span class="obs-counter" id="obsCounter">0/200</span>
     </div>
   </section>
-
   <aside class="preview-col">
     <div class="preview-card">
       <div class="preview-stage">
@@ -534,7 +530,6 @@ input, textarea { font-family: inherit; }
     </div>
   </aside>
 </main>
-
 <footer class="app-footer">
   <div class="footer-inner">
     <div class="footer-totals">
@@ -558,7 +553,6 @@ input, textarea { font-family: inherit; }
     </div>
   </div>
 </footer>
-
 <!-- Modal Login / Cadastro -->
 <div class="overlay" id="loginOverlay">
   <div class="modal">
@@ -590,12 +584,10 @@ input, textarea { font-family: inherit; }
     </p>
   </div>
 </div>
-
 <!-- Modal Checkout em etapas -->
 <div class="overlay" id="checkoutOverlay">
   <div class="modal">
     <button class="close-x" data-close="checkoutOverlay">×</button>
-
     <div class="steps-bar">
       <span class="step-dot active">1</span>
       <span class="step-line"></span>
@@ -603,7 +595,6 @@ input, textarea { font-family: inherit; }
       <span class="step-line"></span>
       <span class="step-dot">3</span>
     </div>
-
     <!-- ETAPA 1: BATATA -->
     <div id="etapaBatata">
       <h3>Quer adicionar batata?</h3>
@@ -615,7 +606,6 @@ input, textarea { font-family: inherit; }
         <button type="button" class="btn-solid" style="flex:1;" id="btnBatataContinuar">Continuar</button>
       </div>
     </div>
-
     <!-- ETAPA 2: BEBIDA -->
     <div id="etapaBebida" style="display:none;">
       <h3>Escolha uma bebida</h3>
@@ -627,16 +617,12 @@ input, textarea { font-family: inherit; }
         <button type="button" class="btn-solid" style="flex:1;" id="btnBebidaContinuar">Continuar</button>
       </div>
     </div>
-
     <!-- ETAPA 3: ENDEREÇO -->
     <div id="etapaEndereco" style="display:none;">
       <h3>Endereço de entrega</h3>
-      <p class="muted-sm">Escolha um endereço e nossa equipe irá confirmar o valor da taxa de entrega pelo whatsapp.</p>
-
+      <p class="muted-sm">Escolha um endereço. A taxa de entrega é calculada pelo bairro.</p>
       <div id="listaEnderecos"></div>
-
       <button type="button" class="btn-outline" id="btnNovoEndereco">+ Novo endereço</button>
-
       <div id="formNovoEndereco">
         <h4>Novo endereço</h4>
         <div class="form-field">
@@ -661,19 +647,21 @@ input, textarea { font-family: inherit; }
         </div>
         <div class="form-field">
           <label for="endBairro">Bairro</label>
-          <input id="endBairro" type="text">
+          <select id="endBairro">
+            <option value="">Selecione o bairro</option>
+          </select>
         </div>
         <div class="form-field">
           <label for="endCidade">Cidade</label>
-          <input id="endCidade" type="text">
+          <input id="endCidade" type="text" value="Paulo Afonso" readonly>
         </div>
         <div class="form-field">
           <label for="endEstado">Estado</label>
-          <input id="endEstado" type="text" maxlength="2" placeholder="SP">
+          <input id="endEstado" type="text" value="BA" readonly>
         </div>
+        <div class="taxa-endereco-label" id="taxaEnderecoLabel"></div>
         <button type="button" class="btn-solid" style="width:100%;" id="btnSalvarEndereco">Salvar endereço</button>
       </div>
-
       <form id="enderecoForm">
         <p class="error-msg" id="endError"></p>
         <div style="display:flex; gap:10px; margin-top:16px;">
@@ -684,7 +672,6 @@ input, textarea { font-family: inherit; }
     </div>
   </div>
 </div>
-
 <!-- Modal Menu (receitas) -->
 <div class="overlay" id="receitasOverlay">
   <div class="modal" style="max-width:560px;">
@@ -694,7 +681,6 @@ input, textarea { font-family: inherit; }
     <div id="listaReceitas"></div>
   </div>
 </div>
-
 <!-- Modal Perfil -->
 <div class="overlay" id="perfilOverlay">
   <div class="modal">
@@ -708,7 +694,6 @@ input, textarea { font-family: inherit; }
     <button type="button" class="btn-ghost" style="width:100%; margin-top:16px;" id="btnSair">Sair da conta</button>
   </div>
 </div>
-
 <!-- Drawer Carrinho -->
 <div class="drawer-backdrop" id="drawerBackdrop"></div>
 <aside class="drawer" id="carrinhoDrawer">
@@ -717,7 +702,6 @@ input, textarea { font-family: inherit; }
   <p class="muted-sm">Hambúrgueres adicionados nesta sessão.</p>
   <ul class="drawer-list" id="listaCarrinho"></ul>
 </aside>
-
 <!-- Drawer Salvos -->
 <aside class="drawer" id="salvosDrawer">
   <button class="close-x" data-close-drawer="salvosDrawer">×</button>
@@ -725,10 +709,8 @@ input, textarea { font-family: inherit; }
   <p class="muted-sm">Suas montagens guardadas.</p>
   <ul class="drawer-list" id="listaSalvos"></ul>
 </aside>
-
 <div class="toast-host" id="toastHost"></div>
-
 <script src="js/config.js"></script>
-<script type="module" src="js/app.js"></script>
+<script type="module" src="js/app.js?v=2"></script>
 </body>
 </html>
