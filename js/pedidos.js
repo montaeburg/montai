@@ -20,10 +20,10 @@ const LAYER_ORDER = [
 // ============ ESTADO ============
 let pedidos = [];
 let somLigado = true;
-let ultimoPedidoImpresso = null;
 let mapaCamadas = {};
 let retiradaAtiva = false;
 let filtroStatus = 'todos';
+let taxaPadrao = 5.00;
 
 // ============ CARREGAR NOMES E CAMADAS ============
 async function carregarNomes() {
@@ -121,12 +121,25 @@ async function alternarRetirada() {
   console.log('Retirada agora:', retiradaAtiva ? 'ativada' : 'desativada');
 }
 
+// ============ TAXA PADRÃO ============
+async function carregarTaxaPadrao() {
+  const { data, error } = await supabase
+    .from('configuracoes')
+    .select('valor')
+    .eq('chave', 'taxa_entrega_padrao')
+    .maybeSingle();
+
+  if (error) { console.error('Erro ao ler taxa_entrega_padrao:', error.message); return; }
+  taxaPadrao = data ? Number(data.valor) || 5.00 : 5.00;
+  console.log('Taxa padrão:', taxaPadrao);
+}
+
 // ============ CARREGAR PEDIDOS ============
 async function carregarPedidos() {
   const { data, error } = await supabase
     .from('pedidos')
     .select(`
-      id, total, status, criado_em, endereco_snapshot, user_id,
+      id, total, subtotal, taxa_entrega, status, criado_em, endereco_snapshot, user_id,
       pedido_itens ( nome, quantidade, preco_unitario, tipo, camadas, inclusos, observacao )
     `)
     .order('criado_em', { ascending: false })
@@ -134,7 +147,7 @@ async function carregarPedidos() {
 
   if (error) {
     console.error('ERRO pedidos:', error.message);
-    $('corpoTabela').innerHTML = `<tr><td colspan="8" class="empty-state">Erro ao carregar: ${esc(error.message)}</td></tr>`;
+    $('corpoTabela').innerHTML = `<tr><td colspan="9" class="empty-state">Erro ao carregar: ${esc(error.message)}</td></tr>`;
     return;
   }
 
@@ -177,7 +190,7 @@ function renderTabela() {
     : pedidos.filter(p => p.status === filtroStatus);
 
   if (!lista.length) {
-    corpo.innerHTML = `<tr><td colspan="8" class="empty-state">${
+    corpo.innerHTML = `<tr><td colspan="9" class="empty-state">${
       pedidos.length ? 'Nenhum pedido com este status.' : 'Nenhum pedido ainda.'
     }</td></tr>`;
     return;
@@ -195,12 +208,19 @@ function renderTabela() {
 
     const end = p.endereco_snapshot || {};
     const isRetirada = end.tipo === 'retirada';
+    const taxa = Number(p.taxa_entrega) || 0;
 
     const enderecoHtml = isRetirada
       ? `<div class="rotulo" style="color:var(--accent-text)">Retirada no local</div><span style="font-size:0.75rem">Cliente busca no balcão</span>`
       : `<div class="rotulo">${esc(end.rotulo || 'Casa')}</div>
          ${esc(end.rua || '')}, ${esc(end.numero || '')}<br>
          ${esc(end.bairro || '')} — ${esc(end.cidade || '')}/${esc(end.estado || '')}`;
+
+    const taxaCell = isRetirada
+      ? `<input class="taxa-input" value="Grátis" disabled>`
+      : `<input class="taxa-input" type="number" min="0" step="0.01"
+           inputmode="decimal" value="${taxa.toFixed(2)}"
+           data-taxa="${p.id}" data-taxa-original="${taxa.toFixed(2)}">`;
 
     const hora = new Date(p.criado_em).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
     const tel = (p.perfil?.telefone || '').replace(/\D/g, '');
@@ -214,6 +234,7 @@ function renderTabela() {
         </td>
         <td><ul class="itens-lista">${itens || '<li>—</li>'}</ul></td>
         <td class="total-cell">${fmt(p.total)}</td>
+        <td class="taxa-cell">${taxaCell}</td>
         <td class="endereco-cell">${enderecoHtml}</td>
         <td>
           <select class="status-select status-${esc(p.status)}" data-status-sel="${p.id}">
@@ -253,12 +274,40 @@ function atualizarKpis() {
   $('kpiPendentes').textContent = pendentes;
 }
 
+// ============ SALVAR TAXA DO PEDIDO ============
+async function salvarTaxaPedido(id, valor) {
+  const pedido = pedidos.find(p => p.id === id);
+  if (!pedido) return;
+
+  const taxa = Math.max(0, Number(valor) || 0);
+  const subtotal = Number(pedido.subtotal) || (Number(pedido.total) - Number(pedido.taxa_entrega)) || 0;
+  const total = subtotal + taxa;
+
+  const { error } = await supabase
+    .from('pedidos')
+    .update({ taxa_entrega: taxa, total })
+    .eq('id', id);
+
+  if (error) {
+    console.error('Erro ao salvar taxa:', error.message);
+    alert('Não foi possível salvar a taxa.');
+    return;
+  }
+
+  pedido.taxa_entrega = taxa;
+  pedido.total = total;
+  renderTabela();
+  atualizarKpis();
+  console.log('Taxa salva:', id, taxa);
+}
+
 // ============ WHATSAPP ============
 function montarMensagem(p) {
   const end = p.endereco_snapshot || {};
+  const isRetirada = end.tipo === 'retirada';
   const linhas = [];
 
-  linhas.push(`*Pedido #${p.id.slice(0, 6)} — montaí*`);
+  linhas.push(`*Pedido #${p.id.slice(0, 6)} — montaê*`);
   linhas.push('');
   linhas.push('*Itens:*');
 
@@ -272,11 +321,26 @@ function montarMensagem(p) {
   });
 
   linhas.push('');
-  linhas.push(`*Total: ${fmt(p.total)}*`);
+
+  const subtotal = Number(p.subtotal) || (Number(p.total) - Number(p.taxa_entrega)) || 0;
+  const taxa = isRetirada ? 0 : Number(p.taxa_entrega) || 0;
+  const totalFinal = subtotal + taxa;
+
+  linhas.push(`Subtotal: ${fmt(subtotal)}`);
+
+  if (isRetirada) {
+    linhas.push('Taxa de entrega: *Grátis* (retirada no local)');
+  } else if (taxa > 0) {
+    linhas.push(`Taxa de entrega: ${fmt(taxa)}`);
+  } else {
+    linhas.push('Taxa de entrega: *Grátis*');
+  }
+
+  linhas.push(`*Total: ${fmt(totalFinal)}*`);
   linhas.push('');
   linhas.push('*Entrega:*');
 
-  if (end.tipo === 'retirada') {
+  if (isRetirada) {
     linhas.push('Retirada no local — cliente busca no balcão');
   } else {
     linhas.push(`${end.rotulo || 'Casa'} — ${end.rua || ''}, ${end.numero || ''}`);
@@ -304,7 +368,7 @@ function abrirWhatsApp(id) {
   window.open(`https://wa.me/${numero}?text=${msg}`, '_blank');
 }
 
-// ============ IMPRESSÃO ============
+// ============ IMPRESSÃO (somente manual) ============
 function imprimirCupom(p) {
   const end = p.endereco_snapshot || {};
 
@@ -315,6 +379,16 @@ function imprimirCupom(p) {
     return `<div class="cupom-item"><span>${i.quantidade}× ${esc(i.nome)}</span><span>${fmt(Number(i.preco_unitario) * i.quantidade)}</span></div>${linhaExtras}`;
   }).join('');
 
+  const subtotal = Number(p.subtotal) || (Number(p.total) - Number(p.taxa_entrega)) || 0;
+  const taxa = end.tipo === 'retirada' ? 0 : Number(p.taxa_entrega) || 0;
+  const totalFinal = subtotal + taxa;
+
+  const totaisHtml = `
+    <div class="cupom-item"><span>Subtotal</span><span>${fmt(subtotal)}</span></div>
+    <div class="cupom-item"><span>Taxa de entrega</span><span>${end.tipo === 'retirada' ? 'Grátis' : (taxa > 0 ? fmt(taxa) : 'Grátis')}</span></div>
+    <div class="cupom-item cupom-total"><span>TOTAL</span><span>${fmt(totalFinal)}</span></div>
+  `;
+
   const entregaHtml = end.tipo === 'retirada'
     ? '<div><strong>RETIRADA NO LOCAL</strong></div><div>Cliente busca no balcão</div>'
     : `<div><strong>ENTREGA</strong></div>
@@ -324,7 +398,7 @@ function imprimirCupom(p) {
        <div>${esc(end.cidade || '')}/${esc(end.estado || '')}</div>`;
 
   $('cupomArea').innerHTML = `
-    <div class="cupom-titulo">montaí</div>
+    <div class="cupom-titulo">montaê</div>
     <div style="text-align:center;font-size:10px">Pedido #${p.id.slice(0, 6)}</div>
     <div style="text-align:center;font-size:10px">${new Date(p.criado_em).toLocaleString('pt-BR')}</div>
     <div class="cupom-linha"></div>
@@ -333,7 +407,7 @@ function imprimirCupom(p) {
     <div class="cupom-linha"></div>
     ${itens}
     <div class="cupom-linha"></div>
-    <div class="cupom-item cupom-total"><span>TOTAL</span><span>${fmt(p.total)}</span></div>
+    ${totaisHtml}
     <div class="cupom-linha"></div>
     ${entregaHtml}
     <div class="cupom-linha"></div>
@@ -360,20 +434,14 @@ function tocarAlerta() {
   } catch {}
 }
 
-// ============ REALTIME ============
+// ============ REALTIME (sem impressão automática) ============
 function assinarRealtime() {
   supabase
     .channel('pedidos-live')
     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'pedidos' }, async (payload) => {
       console.log('Novo pedido:', payload.new.id);
       await carregarPedidos();
-
-      const novo = pedidos.find(p => p.id === payload.new.id);
-      if (novo && novo.id !== ultimoPedidoImpresso) {
-        ultimoPedidoImpresso = novo.id;
-        tocarAlerta();
-        imprimirCupom(novo);
-      }
+      tocarAlerta();
     })
     .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'pedidos' }, async () => {
       await carregarPedidos();
@@ -399,20 +467,38 @@ document.addEventListener('click', (e) => {
 
 document.addEventListener('change', async (e) => {
   const sel = e.target.closest('[data-status-sel]');
-  if (!sel) return;
+  if (sel) {
+    const { error } = await supabase
+      .from('pedidos')
+      .update({ status: sel.value })
+      .eq('id', sel.dataset.statusSel);
 
-  const { error } = await supabase
-    .from('pedidos')
-    .update({ status: sel.value })
-    .eq('id', sel.dataset.statusSel);
+    if (error) {
+      console.error('Erro ao atualizar status:', error.message);
+      alert('Não foi possível atualizar o status.');
+      return;
+    }
 
-  if (error) {
-    console.error('Erro ao atualizar status:', error.message);
-    alert('Não foi possível atualizar o status.');
+    sel.className = 'status-select status-' + sel.value;
     return;
   }
 
-  sel.className = 'status-select status-' + sel.value;
+  const inp = e.target.closest('[data-taxa]');
+  if (inp) {
+    const id = inp.dataset.taxa;
+    const original = Number(inp.dataset.taxaOriginal) || 0;
+    const novo = Math.max(0, Number(String(inp.value).replace(',', '.')) || 0);
+
+    if (Math.abs(novo - original) < 0.001) return;
+    salvarTaxaPedido(id, novo);
+  }
+});
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && e.target.matches('[data-taxa]')) {
+    e.preventDefault();
+    e.target.blur();
+  }
 });
 
 $('filtrosBar').addEventListener('click', (e) => {
@@ -434,6 +520,7 @@ $('btnRetirada').addEventListener('click', alternarRetirada);
 (async () => {
   await carregarNomes();
   await carregarRetirada();
+  await carregarTaxaPadrao();
   await carregarPedidos();
   assinarRealtime();
 })();
