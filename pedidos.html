@@ -71,7 +71,6 @@ button { font-family: inherit; cursor: pointer; }
   color: var(--accent-text); margin-top: 4px;
 }
 
-/* Filtros por status */
 .filtros-bar {
   display: flex; gap: 8px; flex-wrap: wrap;
   max-width: 1400px; margin: 16px auto 0; padding: 0 24px;
@@ -133,20 +132,23 @@ tbody td:last-child {
   font-family: var(--font-serif); font-size: 1.1rem;
   color: var(--accent-text); white-space: nowrap;
 }
+
+/* Campo de taxa por pedido */
 .taxa-cell { white-space: nowrap; }
 .taxa-input {
-  width: 82px; padding: 6px 8px;
-  background: #2B2E31; border: 1px solid rgba(255,255,255,0.1);
+  width: 84px; padding: 7px 8px;
+  background: #2B2E31; border: 1px solid rgba(255,255,255,0.12);
   border-radius: 8px; color: var(--accent-text);
-  font-family: inherit; font-size: 0.82rem;
+  font-family: inherit; font-size: 0.85rem;
   font-variant-numeric: tabular-nums; text-align: right;
-  outline: none;
+  outline: none; display: inline-block;
 }
-.taxa-input:focus { border-color: var(--accent); }
+.taxa-input:focus { border-color: var(--accent); background: #33373A; }
 .taxa-input:disabled {
-  opacity: 0.45; color: var(--text-muted);
+  opacity: 0.5; color: var(--text-muted);
   border-style: dashed; cursor: not-allowed; text-align: center;
 }
+
 .endereco-cell { font-size: 0.78rem; color: var(--text-muted); max-width: 220px; }
 .endereco-cell .rotulo { color: var(--text); font-weight: 500; }
 
@@ -275,6 +277,6 @@ tbody td:last-child {
 <div id="cupomArea"></div>
 
 <script src="js/config.js"></script>
-<script type="module" src="js/pedidos.js"></script>
+<script type="module" src="js/pedidos.js?v=4"></script>
 </body>
 </html>
