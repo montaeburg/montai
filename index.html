@@ -3,654 +3,395 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>montaí — Monte do seu jeito</title>
+<title>montaí — Monte seu hambúrguer</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600&family=Jost:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 :root {
   --accent: #D9A24A;
   --accent-text: #E0B15C;
-  --accent-soft: rgba(217,162,74,0.14);
+  --bg: #2E3134;
   --surface: #34383C;
   --surface-2: #3C4045;
-  --surface-3: #2B2E31;
-  --bg: #2A2D30;
   --text: #EDEAE3;
   --text-muted: #9BA0A5;
-  --border: rgba(217,162,74,0.22);
-  --border-soft: rgba(255,255,255,0.07);
-  --radius: 16px;
-  --radius-sm: 10px;
+  --border: rgba(217,162,74,0.25);
+  --radius: 14px;
   --font-serif: 'Playfair Display', Georgia, serif;
   --font-sans: 'Jost', system-ui, sans-serif;
-  --shadow: 0 12px 32px rgba(0,0,0,0.35);
+  --overlap: 10%;
 }
-* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+* { box-sizing: border-box; }
 html, body {
-  margin: 0; padding: 0;
+  margin: 0;
   background: linear-gradient(180deg, #33373A 0%, #2A2D30 100%);
   color: var(--text);
   font-family: var(--font-sans);
+  letter-spacing: 0.02em;
   min-height: 100vh;
-  overscroll-behavior-y: none;
 }
-button { font-family: inherit; cursor: pointer; border: none; background: none; color: inherit; }
-input, select, textarea { font-family: inherit; }
-img { display: block; max-width: 100%; }
+button { font-family: inherit; cursor: pointer; }
+input, textarea { font-family: inherit; }
 
-/* ============ HEADER ============ */
+/* Header */
 .app-header {
-  position: sticky; top: 0; z-index: 40;
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 14px 20px;
-  background: rgba(38,41,44,0.92);
-  backdrop-filter: blur(12px);
-  border-bottom: 1px solid var(--border-soft);
+  position: fixed; top: 0; left: 0; right: 0; height: 64px; z-index: 50;
+  display: flex; align-items: center; justify-content: space-between; padding: 0 24px;
+  background: #26292C; border-bottom: 1px solid rgba(217,162,74,0.18);
 }
-.brand {
-  display: flex; align-items: center; gap: 10px;
-  font-family: var(--font-serif);
-  font-size: 1.35rem; font-weight: 600;
-  letter-spacing: -0.01em;
-}
-.brand span { color: var(--accent-text); }
+.logo { display: flex; align-items: center; gap: 12px; }
+.logo svg { width: 34px; height: 34px; }
+.wordmark { font-family: var(--font-serif); font-size: 1.5rem; font-weight: 600; }
+.wordmark span { color: var(--accent-text); }
 .header-actions { display: flex; align-items: center; gap: 8px; }
 .icon-btn {
-  position: relative;
-  width: 42px; height: 42px; border-radius: 50%;
+  position: relative; width: 40px; height: 40px; padding: 0; border-radius: 50%;
   display: inline-flex; align-items: center; justify-content: center;
-  border: 1px solid var(--border-soft);
-  background: rgba(255,255,255,0.03);
-  transition: all 0.2s;
+  background: transparent; border: 1px solid rgba(217,162,74,0.25);
+  color: #F2EDE4; transition: all 0.2s;
 }
-.icon-btn:hover { border-color: var(--accent); color: var(--accent-text); }
+.icon-btn:hover { background: rgba(217,162,74,0.12); color: var(--accent-text); }
 .icon-btn svg { width: 20px; height: 20px; }
-.badge {
-  position: absolute; top: -2px; right: -2px;
-  min-width: 18px; height: 18px; padding: 0 5px;
-  border-radius: 999px;
-  background: var(--accent); color: #0A0A0A;
-  font-size: 0.65rem; font-weight: 600;
+.icon-btn .badge {
+  position: absolute; top: 0; right: 0; min-width: 16px; height: 16px; padding: 0 4px;
+  border-radius: 999px; background: var(--accent); color: #0A0A0A;
+  font-size: 0.6rem; font-weight: 600;
   display: inline-flex; align-items: center; justify-content: center;
 }
 
-/* ============ LAYOUT ============ */
-.layout {
-  display: grid;
-  grid-template-columns: 1fr 420px;
-  gap: 24px;
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 20px;
-  align-items: start;
-}
-@media (max-width: 980px) {
-  .layout { grid-template-columns: 1fr; padding: 14px; gap: 16px; }
-  .stage-col { order: -1; }
-}
-
-/* ============ STAGE (visualização) ============ */
-.stage-col { position: sticky; top: 84px; }
-@media (max-width: 980px) { .stage-col { position: static; } }
-
-.stage {
-  position: relative;
-  background: radial-gradient(circle at 50% 40%, #3E4247 0%, #2E3235 70%);
-  border: 1px solid var(--border-soft);
-  border-radius: var(--radius);
-  padding: 28px 20px;
-  min-height: 380px;
-  display: flex; flex-direction: column;
-  align-items: center; justify-content: center;
-  overflow: hidden;
-}
-.stage::before {
-  content: '';
-  position: absolute; inset: 0;
-  background: radial-gradient(circle at 50% 70%, rgba(217,162,74,0.10) 0%, transparent 60%);
-  pointer-events: none;
-}
-.burger-stack {
-  position: relative;
-  width: 100%; max-width: 340px;
-  display: flex; flex-direction: column;
-  align-items: center;
-  z-index: 1;
-}
-.layer {
-  width: 100%;
-  display: flex; justify-content: center;
-  animation: dropIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
-  margin-bottom: -14px;
-}
-.layer:last-child { margin-bottom: 0; }
-.layer img {
-  width: 100%;
-  max-width: 320px;
-  height: auto;
-  filter: drop-shadow(0 8px 16px rgba(0,0,0,0.45));
-}
-@keyframes dropIn {
-  from { opacity: 0; transform: translateY(-16px) scale(0.94); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
-}
-.empty-stage {
-  text-align: center; color: var(--text-muted);
-  font-size: 0.9rem; padding: 40px 20px;
-  position: relative; z-index: 1;
-}
-.empty-stage .icon { font-size: 2.6rem; margin-bottom: 12px; opacity: 0.5; }
-
-.stage-footer {
-  display: flex; align-items: center; justify-content: space-between;
-  width: 100%; margin-top: 20px;
-  padding-top: 16px;
-  border-top: 1px solid var(--border-soft);
-  position: relative; z-index: 1;
-}
-.stage-price {
-  font-family: var(--font-serif);
-  font-size: 1.9rem;
-  color: var(--accent-text);
-}
-.stage-label {
-  font-size: 0.7rem; text-transform: uppercase;
-  letter-spacing: 0.12em; color: var(--text-muted);
-}
-
-/* ============ PAINEL DE MONTAGEM ============ */
-.panel {
-  background: var(--surface);
-  border: 1px solid var(--border-soft);
-  border-radius: var(--radius);
-  padding: 20px;
-  margin-bottom: 16px;
-}
-.panel-title {
-  font-family: var(--font-serif);
-  font-size: 1.15rem;
-  margin: 0 0 14px;
-  display: flex; align-items: center; gap: 8px;
-}
-.panel-title .num {
-  width: 24px; height: 24px; border-radius: 50%;
-  background: var(--accent-soft);
-  color: var(--accent-text);
-  font-family: var(--font-sans);
-  font-size: 0.75rem; font-weight: 600;
-  display: inline-flex; align-items: center; justify-content: center;
-}
-
-/* Chips de categoria */
-.chips {
-  display: flex; gap: 8px; flex-wrap: wrap;
-  margin-bottom: 16px;
-}
-.chip {
-  padding: 7px 14px;
-  border-radius: 999px;
-  border: 1px solid var(--border);
-  background: transparent;
-  color: var(--text);
-  font-size: 0.78rem;
+/* Botão MENU com texto */
+.menu-btn {
+  height: 40px; padding: 0 16px; border-radius: 999px;
+  display: inline-flex; align-items: center; gap: 8px;
+  background: transparent; border: 1px solid rgba(217,162,74,0.25);
+  color: #F2EDE4; font-size: 0.78rem; font-weight: 500;
+  letter-spacing: 0.1em; text-transform: uppercase;
   transition: all 0.2s;
 }
-.chip:hover { border-color: var(--accent); color: var(--accent-text); }
-.chip.active {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: #0A0A0A;
-  font-weight: 500;
-}
+.menu-btn:hover { background: rgba(217,162,74,0.12); color: var(--accent-text); }
+.menu-btn svg { width: 18px; height: 18px; }
 
-/* Inclusos */
-.inclusos-grid {
-  display: flex; flex-wrap: wrap; gap: 8px;
+/* Layout */
+.app-main {
+  margin-top: 64px; display: grid;
+  grid-template-columns: minmax(0,1.1fr) minmax(0,0.9fr);
+  gap: 32px; padding: 32px 24px 110px;
+  max-width: 1280px; margin-left: auto; margin-right: auto;
+}
+.page-title { font-family: var(--font-serif); font-size: 2.2rem; font-weight: 500; margin: 0 0 16px; }
+.section-head { margin: 20px 0 8px; }
+.section-head h2 {
+  font-family: var(--font-serif); font-size: 1.05rem; font-weight: 500; margin: 0;
+}
+.category-chips { display: flex; gap: 8px; flex-wrap: wrap; margin: 12px 0; }
+.chip {
+  padding: 7px 14px; border-radius: 999px; border: 1px solid var(--border);
+  background: transparent; color: var(--text); font-size: 0.82rem;
+  transition: all 0.2s;
+}
+.chip:hover, .chip.active { background: var(--accent); color: #0A0A0A; border-color: var(--accent); }
+
+/* Inclusos como chips/pílulas */
+.inclusos-chips {
+  display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 4px;
 }
 .incluso-chip {
   display: inline-flex; align-items: center; gap: 7px;
-  padding: 8px 13px;
-  border-radius: 999px;
-  border: 1px solid var(--border-soft);
-  background: rgba(255,255,255,0.02);
-  font-size: 0.8rem;
-  cursor: pointer;
-  transition: all 0.2s;
-  user-select: none;
+  padding: 8px 14px; border-radius: 999px;
+  border: 1px solid var(--border); background: transparent;
+  color: var(--text); font-size: 0.82rem;
+  transition: all 0.2s; user-select: none;
 }
-.incluso-chip:hover { border-color: var(--border); }
+.incluso-chip:hover { border-color: var(--accent); }
 .incluso-chip.selected {
-  border-color: var(--accent);
-  background: var(--accent-soft);
-  color: var(--accent-text);
+  background: var(--accent); color: #0A0A0A; border-color: var(--accent);
+  font-weight: 500;
 }
-.incluso-chip input { display: none; }
-.chip-check {
-  width: 16px; height: 16px; border-radius: 4px;
-  border: 1.5px solid var(--text-muted);
+.incluso-chip .chip-check {
+  width: 14px; height: 14px; flex-shrink: 0;
   display: inline-flex; align-items: center; justify-content: center;
-  transition: all 0.2s;
-  flex-shrink: 0;
 }
-.chip-check svg { width: 10px; height: 10px; opacity: 0; transition: opacity 0.15s; }
-.incluso-chip.selected .chip-check {
-  background: var(--accent);
-  border-color: var(--accent);
+.incluso-chip .chip-check svg {
+  width: 12px; height: 12px; opacity: 0;
+  transition: opacity 0.15s;
 }
 .incluso-chip.selected .chip-check svg { opacity: 1; }
+.incluso-chip input { position: absolute; opacity: 0; pointer-events: none; }
 
 /* Ingredientes */
-.section-head {
-  display: flex; align-items: center; gap: 10px;
-  margin: 20px 0 10px;
-}
-.section-head h2 {
-  font-family: var(--font-serif);
-  font-size: 1rem; font-weight: 500;
-  margin: 0; color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-}
-.section-head::after {
-  content: ''; flex: 1; height: 1px;
-  background: var(--border-soft);
-}
 .ingredient-row {
-  display: flex; align-items: center; justify-content: space-between;
-  gap: 12px;
-  padding: 12px 0;
-  border-bottom: 1px solid var(--border-soft);
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 8px 12px; border: 1px solid rgba(255,255,255,0.06);
+  border-radius: var(--radius); background: var(--surface);
+  margin-bottom: 6px; transition: all 0.25s;
 }
-.ingredient-row:last-child { border-bottom: none; }
-.ingredient-info { flex: 1; min-width: 0; }
-.ingredient-name { display: block; font-size: 0.9rem; font-weight: 500; }
-.ingredient-desc {
-  display: block; font-size: 0.75rem;
-  color: var(--text-muted); margin-top: 2px;
+.ingredient-row:hover {
+  background: var(--surface-2); border-color: rgba(217,162,74,0.35);
 }
-.ingredient-right {
-  display: flex; align-items: center; gap: 12px;
-  flex-shrink: 0;
-}
-.ingredient-price {
-  font-size: 0.82rem;
-  color: var(--accent-text);
-  font-variant-numeric: tabular-nums;
-  min-width: 58px; text-align: right;
-}
+.ingredient-info { display: flex; flex-direction: column; min-width: 0; }
+.ingredient-name { font-size: 0.875rem; font-weight: 500; }
+.ingredient-desc { font-size: 0.75rem; color: var(--text-muted); }
+.ingredient-right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+.ingredient-price { font-size: 0.8125rem; font-variant-numeric: tabular-nums; }
 .add-btn {
-  width: 32px; height: 32px; border-radius: 50%;
-  border: 1px solid var(--border);
-  color: var(--accent-text);
-  font-size: 1.1rem; line-height: 1;
+  width: 28px; height: 28px; border-radius: 50%; border: none;
+  background: var(--accent); color: #0A0A0A; font-size: 1.1rem; line-height: 1;
   display: inline-flex; align-items: center; justify-content: center;
-  transition: all 0.2s;
+  transition: transform 0.2s;
 }
-.add-btn:hover { background: var(--accent-soft); border-color: var(--accent); }
+.add-btn:hover { transform: scale(1.08); }
 .qty-control {
-  display: inline-flex; align-items: center; gap: 2px;
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  padding: 2px;
+  display: inline-flex; align-items: center; gap: 3px;
+  background: #3A3E42; border: 1px solid var(--border);
+  border-radius: 999px; padding: 2px;
 }
 .qty-control button {
-  width: 28px; height: 28px; border-radius: 50%;
-  color: var(--accent-text);
-  font-size: 1rem; line-height: 1;
-  display: inline-flex; align-items: center; justify-content: center;
-  transition: background 0.15s;
+  width: 28px; height: 28px; border-radius: 50%; border: none;
+  background: var(--accent); color: #0A0A0A; font-size: 1rem;
 }
-.qty-control button:hover { background: var(--accent-soft); }
-.qty-control span {
-  min-width: 22px; text-align: center;
-  font-size: 0.85rem; font-weight: 500;
-  font-variant-numeric: tabular-nums;
+.qty-control span { min-width: 22px; text-align: center; font-weight: 600; font-size: 0.8125rem; }
+
+/* Preview */
+.preview-col { position: sticky; top: 88px; align-self: start; }
+.preview-card {
+  border: 1px solid rgba(0,0,0,0.08); border-radius: 20px;
+  background: linear-gradient(180deg, #F7F6F3 0%, #EDECE8 100%);
+  padding: 24px; overflow: visible;
+}
+.preview-stage {
+  position: relative; width: 100%; aspect-ratio: 1/1.15;
+  display: flex; align-items: center; justify-content: center;
 }
 
-/* Observação */
-.obs-wrap { position: relative; }
-.obs-wrap textarea {
+/* ===== EMPILHAMENTO ===== */
+.stack-burger {
+  position: relative;
+  width: 300px;
+  display: flex;
+  flex-direction: column-reverse;
+  align-items: center;
+  justify-content: flex-start;
+}
+.layer {
   width: 100%;
-  min-height: 78px;
-  padding: 12px 14px;
-  background: var(--surface-3);
-  border: 1px solid var(--border-soft);
-  border-radius: var(--radius-sm);
-  color: var(--text);
-  font-size: 0.85rem;
-  resize: vertical;
-  outline: none;
-  transition: border-color 0.2s;
+  display: flex;
+  justify-content: center;
+  margin-top: calc(var(--overlap) * -1);
+  animation: layerFade 0.4s ease both;
 }
-.obs-wrap textarea:focus { border-color: var(--accent); }
-.obs-counter {
-  position: absolute; bottom: 8px; right: 12px;
-  font-size: 0.68rem; color: var(--text-muted);
+.layer img {
+  width: 100%; height: auto; display: block; object-fit: contain;
+  filter: drop-shadow(0 2px 3px rgba(0,0,0,0.08));
 }
+.layer[data-layer="bun-top"] { margin-top: 0; }
+@keyframes layerFade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.empty-stage { color: #4A443C; font-size: 0.9rem; text-align: center; padding: 40px 20px; }
 
 /* Resumo */
+.summary-card {
+  margin-top: 16px; border: 1px solid var(--border); border-radius: var(--radius);
+  background: var(--surface); padding: 16px 18px;
+}
 .summary-list {
-  list-style: none; padding: 0; margin: 0;
-  display: flex; flex-wrap: wrap; gap: 6px;
+  display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 0; padding: 0; list-style: none;
 }
 .summary-list li {
-  font-size: 0.75rem;
-  padding: 4px 10px;
-  border-radius: 999px;
-  background: rgba(255,255,255,0.04);
-  color: var(--text);
+  padding: 4px 10px; border-radius: 999px;
+  background: rgba(217,162,74,0.1); font-size: 0.78rem;
 }
-.summary-list li.incluso { color: var(--text-muted); }
+.summary-list li.incluso {
+  background: transparent; border: 1px dashed var(--border); color: var(--text-muted);
+}
+.price-hero {
+  display: flex; justify-content: space-between; align-items: flex-end; margin-top: 16px;
+}
+.price-label {
+  text-transform: uppercase; font-size: 0.72rem;
+  letter-spacing: 0.18em; color: var(--text-muted);
+}
+.price-value {
+  font-family: var(--font-serif); font-size: 2.2rem;
+  color: var(--accent-text); font-variant-numeric: tabular-nums; line-height: 1;
+}
 
-/* Botões */
-.btn-primary {
-  width: 100%;
-  padding: 15px 20px;
-  border-radius: var(--radius-sm);
-  background: var(--accent);
-  color: #0A0A0A;
-  font-size: 0.92rem;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-  transition: all 0.2s;
-  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+/* Observações */
+.obs-field { margin-top: 16px; display: flex; flex-direction: column; gap: 6px; }
+.obs-field label { font-size: 0.8rem; color: var(--text-muted); }
+.obs-field textarea {
+  background: #2B2E31; border: 1px solid rgba(255,255,255,0.08);
+  color: var(--text); border-radius: var(--radius);
+  padding: 10px 12px; font-size: 0.875rem; min-height: 78px; resize: vertical;
 }
-.btn-primary:hover { background: #E5B15C; transform: translateY(-1px); }
-.btn-primary:active { transform: translateY(0); }
-.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
-.btn-outline {
-  padding: 13px 20px;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--border);
-  color: var(--text);
-  font-size: 0.85rem;
-  transition: all 0.2s;
-  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+.obs-counter { align-self: flex-end; font-size: 0.72rem; color: var(--text-muted); }
+
+/* Footer */
+.app-footer {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 40;
+  background: #222528; border-top: 1px solid var(--border);
+  padding: 8px 24px; min-height: 64px;
+  display: flex; align-items: center;
 }
+.footer-inner {
+  width: 100%; max-width: 1280px; margin: 0 auto;
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+}
+.footer-totals .label {
+  font-size: 9px; text-transform: uppercase;
+  letter-spacing: 0.12em; color: var(--text-muted);
+}
+.footer-totals .value {
+  font-family: var(--font-serif); font-size: 18px;
+  color: var(--accent-text); font-variant-numeric: tabular-nums;
+}
+.footer-actions { display: flex; gap: 8px; align-items: center; }
+
+/* Botões de ícone do rodapé */
+.foot-icon-btn {
+  width: 44px; height: 44px; padding: 0; border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: transparent; border: 1px solid var(--border);
+  color: var(--text); transition: all 0.2s; position: relative;
+}
+.foot-icon-btn:hover { border-color: var(--accent); color: var(--accent-text); background: rgba(217,162,74,0.1); }
+.foot-icon-btn svg { width: 20px; height: 20px; }
+.foot-icon-btn.solid {
+  background: var(--accent); border-color: var(--accent); color: #0A0A0A;
+}
+.foot-icon-btn.solid:hover { background: var(--accent-text); color: #0A0A0A; }
+
+.btn-solid, .btn-outline, .btn-ghost {
+  padding: 11px 18px; border-radius: 999px; font-size: 0.85rem;
+  border: 1px solid var(--border); transition: all 0.2s;
+}
+.btn-solid { background: var(--accent); color: #0A0A0A; border-color: var(--accent); font-weight: 500; }
+.btn-solid:hover { background: var(--accent-text); }
+.btn-outline { background: transparent; color: var(--text); }
 .btn-outline:hover { border-color: var(--accent); color: var(--accent-text); }
-.btn-ghost {
-  border-radius: 8px;
-  color: var(--text-muted);
-  font-size: 0.85rem;
-  transition: color 0.2s;
-}
-.btn-ghost:hover { color: var(--text); }
-.btn-row { display: flex; gap: 10px; margin-top: 12px; }
-.btn-row .btn-outline { flex: 1; }
+.btn-ghost { background: transparent; color: var(--text); border-color: transparent; }
+.btn-ghost:hover { color: var(--accent-text); }
+#checkout { background: #2E7D4F; color: #fff; border-color: #2E7D4F; }
+#checkout:hover { background: #36A05F; }
 
-/* ============ FOOTER FIXO ============ */
-.footer-bar {
-  position: fixed; bottom: 0; left: 0; right: 0; z-index: 45;
-  display: flex; align-items: center; justify-content: space-between;
-  gap: 16px;
-  padding: 14px 20px;
-  background: rgba(38,41,44,0.96);
-  backdrop-filter: blur(14px);
-  border-top: 1px solid var(--border-soft);
-}
-@media (min-width: 981px) {
-  .footer-bar { display: none; }
-}
-.footer-total {
-  font-family: var(--font-serif);
-  font-size: 1.4rem;
-  color: var(--accent-text);
-}
-.footer-total-label {
-  font-size: 0.65rem; text-transform: uppercase;
-  letter-spacing: 0.1em; color: var(--text-muted);
-}
-.footer-bar .btn-primary { width: auto; padding: 13px 26px; }
-body { padding-bottom: 84px; }
-@media (min-width: 981px) { body { padding-bottom: 24px; } }
-
-/* ============ OVERLAYS / MODAIS ============ */
+/* Modais */
 .overlay {
-  position: fixed; inset: 0; z-index: 100;
-  background: rgba(10,10,10,0.72);
-  backdrop-filter: blur(6px);
-  display: none;
-  align-items: center; justify-content: center;
-  padding: 20px;
-  overflow-y: auto;
+  position: fixed; inset: 0; background: rgba(0,0,0,0.65); z-index: 80;
+  display: none; align-items: center; justify-content: center; padding: 20px;
 }
 .overlay.open { display: flex; }
 .modal {
-  width: 100%; max-width: 480px;
-  background: var(--surface);
-  border: 1px solid var(--border-soft);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
-  padding: 24px;
-  max-height: 90vh;
-  overflow-y: auto;
-  animation: modalIn 0.25s ease;
+  background: #2B2E31; border: 1px solid rgba(217,162,74,0.35);
+  border-radius: 18px; padding: 28px; width: 100%; max-width: 440px;
+  max-height: 90vh; overflow-y: auto;
 }
-@keyframes modalIn {
-  from { opacity: 0; transform: translateY(16px) scale(0.98); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
+.modal h3 {
+  font-family: var(--font-serif); font-weight: 500; font-size: 1.5rem; margin: 0 0 6px;
 }
-.modal-head {
-  display: flex; align-items: flex-start; justify-content: space-between;
-  gap: 12px; margin-bottom: 18px;
+.modal h4 {
+  font-family: var(--font-serif); font-weight: 500; font-size: 1rem; margin: 20px 0 10px;
 }
-.modal-title {
-  font-family: var(--font-serif);
-  font-size: 1.4rem; margin: 0;
+.muted-sm { color: var(--text-muted); font-size: 0.85rem; margin: 0 0 16px; }
+.close-x {
+  float: right; background: none; border: none; color: var(--text-muted);
+  font-size: 1.4rem; line-height: 1;
 }
-.modal-subtitle {
-  font-size: 0.82rem; color: var(--text-muted);
-  margin: 4px 0 0;
+.close-x:hover { color: var(--accent-text); }
+.form-field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+.form-field label { font-size: 0.8rem; color: var(--text-muted); }
+.form-field input {
+  background: #2B2E31; border: 1px solid rgba(255,255,255,0.08);
+  color: var(--text); border-radius: 10px; padding: 11px 13px; font-size: 0.9rem;
 }
-.modal-close {
-  width: 32px; height: 32px; border-radius: 50%;
-  border: 1px solid var(--border-soft);
-  color: var(--text-muted);
-  font-size: 1.1rem; line-height: 1;
-  display: inline-flex; align-items: center; justify-content: center;
-  flex-shrink: 0;
-  transition: all 0.2s;
-}
-.modal-close:hover { border-color: var(--accent); color: var(--accent-text); }
+.form-field input:focus { outline: 2px solid var(--accent-text); outline-offset: 1px; }
+.modal footer { display: flex; gap: 10px; margin-top: 18px; }
+.modal footer button { flex: 1; }
+.error-msg { display: none; margin: 8px 0 0; font-size: 0.8rem; color: #E8806F; }
+.error-msg.show { display: block; }
 
-/* Campos */
-.field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
-.field label {
-  font-size: 0.72rem; text-transform: uppercase;
-  letter-spacing: 0.1em; color: var(--text-muted);
-}
-.field input, .field select {
-  width: 100%;
-  padding: 12px 14px;
-  background: var(--surface-3);
-  border: 1px solid var(--border-soft);
-  border-radius: var(--radius-sm);
-  color: var(--text);
-  font-size: 0.88rem;
-  outline: none;
-  transition: border-color 0.2s;
-}
-.field input:focus, .field select:focus { border-color: var(--accent); }
-.field input::placeholder { color: #6E7378; }
-.field select {
-  appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' stroke='%239BA0A5' stroke-width='1.6' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 14px center;
-  padding-right: 38px;
-  cursor: pointer;
-}
-.field-row { display: grid; grid-template-columns: 1fr 90px; gap: 10px; }
-
-/* Campos travados (cidade e estado) */
-input[readonly] {
-  background: rgba(255,255,255,0.035);
-  color: var(--text-muted);
-  cursor: not-allowed;
-  border-style: dashed;
-}
-
-.taxa-endereco-label {
-  font-size: 0.8rem;
-  color: var(--accent-text);
-  padding: 4px 0 12px;
-  min-height: 20px;
-}
-
-/* Erro */
-.form-error {
-  display: none;
-  padding: 10px 14px;
-  border-radius: var(--radius-sm);
-  background: rgba(200,90,80,0.14);
-  border: 1px solid rgba(200,90,80,0.3);
-  color: #E8806F;
-  font-size: 0.8rem;
-  margin-bottom: 14px;
-}
-.form-error.show { display: block; }
-
-/* ============ CHECKOUT ============ */
-.steps {
-  display: flex; align-items: center; justify-content: center;
-  gap: 8px; margin-bottom: 20px;
+/* Etapas do checkout */
+.steps-bar {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  margin-bottom: 20px;
 }
 .step-dot {
-  width: 9px; height: 9px; border-radius: 50%;
-  background: rgba(255,255,255,0.15);
-  transition: all 0.25s;
+  width: 28px; height: 28px; border-radius: 50%;
+  border: 1px solid var(--border); background: transparent;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 0.75rem; color: var(--text-muted); transition: all 0.2s;
 }
-.step-dot.active { background: var(--accent); width: 26px; border-radius: 999px; }
-.step-dot.done { background: var(--accent-text); opacity: 0.5; }
+.step-dot.active { background: var(--accent); color: #0A0A0A; border-color: var(--accent); font-weight: 600; }
+.step-dot.done { background: rgba(217,162,74,0.25); color: var(--accent-text); border-color: var(--accent); }
+.step-line { width: 24px; height: 1px; background: var(--border); }
 
+/* Upsell batata */
 .upsell-card {
   display: flex; align-items: center; gap: 14px;
-  padding: 12px;
-  border: 1px solid var(--border-soft);
-  border-radius: var(--radius-sm);
-  margin-bottom: 10px;
-  background: rgba(255,255,255,0.02);
+  padding: 14px; margin-bottom: 10px;
+  border: 1px solid rgba(255,255,255,0.08); border-radius: var(--radius);
+  background: var(--surface);
 }
 .upsell-img {
-  width: 64px; height: 64px; border-radius: 10px;
-  object-fit: cover; flex-shrink: 0;
+  width: 72px; height: 72px; object-fit: cover;
+  border-radius: 10px; flex-shrink: 0; background: #222528;
 }
 .upsell-info { flex: 1; min-width: 0; }
-.upsell-nome { font-size: 0.9rem; font-weight: 500; }
-.upsell-desc { font-size: 0.75rem; color: var(--text-muted); margin-top: 2px; }
-.upsell-preco { font-size: 0.82rem; color: var(--accent-text); margin-top: 4px; }
+.upsell-nome { font-weight: 600; font-size: 0.95rem; }
+.upsell-desc { font-size: 0.78rem; color: var(--text-muted); margin-top: 2px; }
+.upsell-preco { font-size: 0.9rem; color: var(--accent-text); margin-top: 4px; font-weight: 500; }
 .upsell-ctrl { flex-shrink: 0; }
 
+/* Bebidas */
 .bebida-card {
   display: flex; align-items: center; gap: 14px;
-  padding: 12px;
-  border: 1px solid var(--border-soft);
-  border-radius: var(--radius-sm);
-  margin-bottom: 10px;
-  cursor: pointer;
-  transition: all 0.2s;
+  padding: 12px 14px; margin-bottom: 8px;
+  border: 1px solid rgba(255,255,255,0.08); border-radius: var(--radius);
+  background: var(--surface); cursor: pointer; transition: all 0.2s;
 }
-.bebida-card:hover { border-color: var(--border); }
-.bebida-card.selected {
-  border-color: var(--accent);
-  background: var(--accent-soft);
-}
-.bebida-card input { display: none; }
+.bebida-card:hover { border-color: rgba(217,162,74,0.4); }
+.bebida-card.selected { border-color: var(--accent); background: rgba(217,162,74,0.08); }
+.bebida-card input { accent-color: var(--accent); flex-shrink: 0; }
 .bebida-img {
-  width: 56px; height: 56px; border-radius: 10px;
-  object-fit: cover; flex-shrink: 0;
+  width: 52px; height: 52px; object-fit: cover;
+  border-radius: 8px; flex-shrink: 0; background: #222528;
 }
-.bebida-info { flex: 1; }
-.bebida-nome { font-size: 0.9rem; font-weight: 500; }
+.bebida-info { flex: 1; min-width: 0; }
+.bebida-nome { font-weight: 500; font-size: 0.9rem; }
 .bebida-tam { font-size: 0.75rem; color: var(--text-muted); }
-.bebida-preco { font-size: 0.82rem; color: var(--accent-text); margin-top: 3px; }
+.bebida-preco { font-size: 0.85rem; color: var(--accent-text); margin-top: 2px; }
 
 /* Endereços */
 .endereco-card {
-  display: flex; align-items: flex-start; gap: 12px;
-  padding: 14px;
-  border: 1px solid var(--border-soft);
-  border-radius: var(--radius-sm);
-  margin-bottom: 10px;
-  cursor: pointer;
-  transition: all 0.2s;
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 12px 14px; margin-bottom: 8px;
+  border: 1px solid rgba(255,255,255,0.08); border-radius: var(--radius);
+  background: var(--surface); cursor: pointer; transition: all 0.2s;
 }
-.endereco-card:hover { border-color: var(--border); }
-.endereco-card.selected {
-  border-color: var(--accent);
-  background: var(--accent-soft);
+.endereco-card:hover { border-color: rgba(217,162,74,0.4); }
+.endereco-card.selected { border-color: var(--accent); background: rgba(217,162,74,0.08); }
+.endereco-card input { margin-top: 3px; accent-color: var(--accent); }
+.endereco-rotulo {
+  font-weight: 600; font-size: 0.9rem; color: var(--accent-text);
+  margin-bottom: 2px;
 }
-.endereco-card input {
-  margin-top: 3px;
-  accent-color: var(--accent);
-  width: 16px; height: 16px;
-  flex-shrink: 0;
-}
-.endereco-rotulo { font-size: 0.9rem; font-weight: 500; }
-.endereco-card .meta {
-  font-size: 0.76rem; color: var(--text-muted);
-  margin-top: 3px; line-height: 1.4;
-}
+.endereco-card .meta { font-size: 0.78rem; color: var(--text-muted); }
+#btnNovoEndereco { width: 100%; margin-bottom: 12px; }
+#formNovoEndereco { display: none; }
 
-/* ============ DRAWERS ============ */
-.drawer-backdrop {
-  position: fixed; inset: 0; z-index: 90;
-  background: rgba(10,10,10,0.6);
-  backdrop-filter: blur(4px);
-  display: none;
-}
-.drawer-backdrop.open { display: block; }
-.drawer {
-  position: fixed; top: 0; right: 0; bottom: 0; z-index: 95;
-  width: 100%; max-width: 400px;
-  background: var(--surface);
-  border-left: 1px solid var(--border-soft);
-  transform: translateX(100%);
-  transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
-  display: flex; flex-direction: column;
-}
-.drawer.open { transform: translateX(0); }
-.drawer-head {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 20px;
-  border-bottom: 1px solid var(--border-soft);
-}
-.drawer-title { font-family: var(--font-serif); font-size: 1.25rem; margin: 0; }
-.drawer-body { flex: 1; overflow-y: auto; padding: 16px 20px; }
-.drawer-list { list-style: none; padding: 0; margin: 0; }
-.drawer-item {
-  display: flex; align-items: center; justify-content: space-between;
-  gap: 12px;
-  padding: 12px 0;
-  border-bottom: 1px solid var(--border-soft);
-}
-.drawer-item:last-child { border-bottom: none; }
-.drawer-item .meta { font-size: 0.75rem; color: var(--text-muted); margin-top: 2px; }
-
-/* ============ PERFIL ============ */
+/* Perfil */
 .perfil-head {
-  display: flex; align-items: center; gap: 14px;
-  padding-bottom: 18px;
-  border-bottom: 1px solid var(--border-soft);
-  margin-bottom: 18px;
+  display: flex; flex-direction: column; gap: 2px;
+  padding-bottom: 14px; margin-bottom: 6px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
 }
-.perfil-avatar {
-  width: 56px; height: 56px; border-radius: 50%;
-  background: var(--accent-soft);
-  border: 1px solid var(--border);
-  color: var(--accent-text);
-  font-family: var(--font-serif);
-  font-size: 1.4rem;
-  display: inline-flex; align-items: center; justify-content: center;
-  flex-shrink: 0;
-}
-.perfil-nome { font-size: 1rem; font-weight: 500; }
-.perfil-tel { font-size: 0.8rem; color: var(--text-muted); margin-top: 2px; }
+.perfil-head .nome { font-family: var(--font-serif); font-size: 1.3rem; }
+.perfil-head .tel { font-size: 0.85rem; color: var(--text-muted); }
 .status-badge {
-  font-size: 0.65rem; text-transform: uppercase;
-  letter-spacing: 0.06em; font-weight: 600;
-  padding: 4px 10px; border-radius: 999px;
+  padding: 4px 10px; border-radius: 999px; font-size: 0.7rem;
+  text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600;
+  white-space: nowrap;
 }
 .status-pendente { background: rgba(217,162,74,0.18); color: var(--accent-text); }
 .status-preparando { background: rgba(90,150,220,0.18); color: #7FB3E8; }
@@ -658,384 +399,336 @@ input[readonly] {
 .status-entregue { background: rgba(70,160,110,0.18); color: #6FC79A; }
 .status-cancelado { background: rgba(200,90,80,0.18); color: #E8806F; }
 
-/* ============ TOAST ============ */
-#toastHost {
-  position: fixed; bottom: 96px; left: 50%;
-  transform: translateX(-50%);
-  z-index: 200;
-  display: flex; flex-direction: column; gap: 8px;
-  align-items: center;
-  pointer-events: none;
+/* Drawer */
+.drawer {
+  position: fixed; top: 0; right: 0; bottom: 0; width: 100%; max-width: 420px;
+  background: #2B2E31; border-left: 1px solid rgba(217,162,74,0.35);
+  padding: 56px 24px 24px; overflow-y: auto; z-index: 90;
+  transform: translateX(100%); transition: transform 0.3s ease-out, visibility 0.3s;
+  visibility: hidden;
+}
+.drawer.open { transform: translateX(0); visibility: visible; }
+.drawer-backdrop {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 85;
+  opacity: 0; pointer-events: none; transition: opacity 0.3s;
+}
+.drawer-backdrop.open { opacity: 1; pointer-events: auto; }
+.drawer .close-x { position: absolute; top: 14px; right: 16px; font-size: 1.8rem; }
+.drawer-list { list-style: none; padding: 0; margin: 14px 0 0; display: flex; flex-direction: column; gap: 10px; }
+.drawer-item {
+  border: 1px solid rgba(255,255,255,0.06); border-radius: var(--radius);
+  padding: 14px; background: var(--surface);
+  display: flex; justify-content: space-between; align-items: center; gap: 10px;
+}
+.drawer-item .meta { font-size: 0.78rem; color: var(--text-muted); }
+.empty-state { text-align: center; color: var(--text-muted); font-size: 0.88rem; padding: 30px 10px; }
+
+/* Toast */
+.toast-host {
+  position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%);
+  z-index: 120; pointer-events: none;
 }
 .toast-msg {
-  padding: 11px 20px;
-  border-radius: 999px;
-  background: rgba(38,41,44,0.98);
-  border: 1px solid var(--border);
-  color: var(--text);
-  font-size: 0.82rem;
-  box-shadow: var(--shadow);
-  animation: toastIn 0.25s ease;
+  background: var(--surface); border: 1px solid rgba(217,162,74,0.35);
+  padding: 12px 20px; border-radius: 999px; font-size: 0.85rem;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.5); animation: layerFade 0.3s ease both;
   white-space: nowrap;
 }
-@keyframes toastIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
-}
 
-.empty-state {
-  text-align: center;
-  color: var(--text-muted);
-  font-size: 0.85rem;
-  padding: 32px 16px;
-  list-style: none;
-}
+/* Responsivo */
+@media (max-width: 899px) {
+  :root { --overlap: 6%; }
 
-/* ============ RESPONSIVO ============ */
-@media (max-width: 480px) {
-  .app-header { padding: 12px 16px; }
-  .brand { font-size: 1.2rem; }
-  .panel { padding: 16px; }
-  .modal { padding: 20px; }
-  .stage { min-height: 300px; padding: 20px 14px; }
-  .stage-price { font-size: 1.6rem; }
+  .app-main { grid-template-columns: 1fr; gap: 16px; padding: 14px 12px 96px; }
+  .preview-col { position: sticky; top: 56px; z-index: 30; background: #0A0A0A; padding-bottom: 6px; }
+  .preview-card { padding: 10px; overflow: visible; }
+  .preview-stage {
+    aspect-ratio: auto;
+    height: auto;
+    min-height: 170px;
+    max-height: 52vh;
+    overflow-y: auto;
+    overflow-x: hidden;
+    align-items: flex-start;
+    padding: 8px 0;
+    -webkit-overflow-scrolling: touch;
+  }
+  .stack-burger { width: clamp(150px, 46vw, 210px); }
+  .page-title { font-size: 1.5rem; }
+  .app-header { height: 56px; padding: 0 12px; }
+  .app-main { margin-top: 56px; }
+  .menu-btn { padding: 0 12px; font-size: 0.72rem; }
+  .menu-btn span { display: none; }
 }
 </style>
 </head>
 <body>
 
-<!-- ============ HEADER ============ -->
 <header class="app-header">
-  <div class="brand">monta<span>í</span></div>
+  <div class="logo">
+    <svg viewBox="0 0 48 48" fill="none" aria-hidden="true">
+      <path d="M10 22c0-7 6-12 14-12s14 5 14 12" stroke="#D9A24A" stroke-width="1.6" stroke-linecap="round"/>
+      <path d="M8 27h32" stroke="#D9A24A" stroke-width="1.6" stroke-linecap="round"/>
+      <path d="M10 31c0 1.5 1 2 2 2h24c1 0 2-.5 2-2" stroke="#D9A24A" stroke-width="1.6" stroke-linecap="round"/>
+      <path d="M12 36c0 2 1.5 4 4 4h16c2.5 0 4-2 4-4" stroke="#D9A24A" stroke-width="1.6" stroke-linecap="round"/>
+    </svg>
+    <div class="wordmark">monta<span>í</span></div>
+  </div>
   <div class="header-actions">
-    <button class="icon-btn" id="btnReceitas" title="Receitas da casa">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
-        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+    <button class="menu-btn" id="btnReceitas" title="Menu" aria-label="Menu">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+        <path d="M4 5h7M4 10h7M4 15h7M4 20h7"/><path d="M15 4l5 3-5 3z"/><path d="M15 13h5M15 17h5"/>
+      </svg>
+      <span>Menu</span>
+    </button>
+    <button class="icon-btn" id="btnSalvos" title="Hambúrgueres salvos" aria-label="Hambúrgueres salvos">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round">
+        <path d="M6 3h12v18l-6-4-6 4z"/>
       </svg>
     </button>
-    <button class="icon-btn" id="btnSalvos" title="Meus hambúrgueres">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
-      </svg>
-    </button>
-    <button class="icon-btn" id="btnCarrinho" title="Carrinho">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
-        <circle cx="9" cy="21" r="1"/>
-        <circle cx="20" cy="21" r="1"/>
-        <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+    <button class="icon-btn" id="btnCarrinho" title="Carrinho" aria-label="Carrinho">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 4h2l2.4 11h11.2L21 7H7"/>
+        <circle cx="9" cy="20" r="1.4"/><circle cx="17" cy="20" r="1.4"/>
       </svg>
       <span class="badge" id="cartCount">0</span>
     </button>
-    <button class="icon-btn" id="btnPerfil" title="Perfil">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-        <circle cx="12" cy="7" r="4"/>
+    <button class="icon-btn" id="btnPerfil" title="Perfil" aria-label="Perfil">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+        <circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/>
       </svg>
     </button>
   </div>
 </header>
 
-<!-- ============ LAYOUT ============ -->
-<div class="layout">
+<main class="app-main">
+  <section>
+    <h1 class="page-title">Monte seu hambúrguer</h1>
+    <div class="category-chips" id="chipsCategoria"></div>
+    <div class="section-head"><h2>Inclusos no hambúrguer</h2></div>
+    <div class="inclusos-chips" id="listaInclusos"></div>
+    <div id="listaIngredientes"></div>
+    <div class="obs-field">
+      <label for="obsText">Observações</label>
+      <textarea id="obsText" maxlength="200" placeholder="Ex: sem cebola, ponto da carne bem passado..."></textarea>
+      <span class="obs-counter" id="obsCounter">0/200</span>
+    </div>
+  </section>
 
-  <!-- Coluna de montagem -->
-  <div class="build-col">
-
-    <!-- Inclusos -->
-    <section class="panel">
-      <h2 class="panel-title"><span class="num">1</span> O que vai no seu burger</h2>
-      <div class="inclusos-grid" id="listaInclusos"></div>
-    </section>
-
-    <!-- Ingredientes -->
-    <section class="panel">
-      <h2 class="panel-title"><span class="num">2</span> Monte do seu jeito</h2>
-      <div class="chips" id="chipsCategoria"></div>
-      <div id="listaIngredientes"></div>
-    </section>
-
-    <!-- Observação -->
-    <section class="panel">
-      <h2 class="panel-title"><span class="num">3</span> Alguma observação?</h2>
-      <div class="obs-wrap">
-        <textarea id="obsText" maxlength="200" placeholder="Ex: sem cebola, ponto da carne, molho à parte..."></textarea>
-        <span class="obs-counter" id="obsCounter">0/200</span>
-      </div>
-    </section>
-
-    <!-- Resumo -->
-    <section class="panel">
-      <h2 class="panel-title"><span class="num">4</span> Resumo</h2>
-      <ul class="summary-list" id="summaryList"></ul>
-      <div class="btn-row">
-        <button class="btn-outline" id="btnSalvar">Salvar montagem</button>
-        <button class="btn-primary" id="btnAdicionar">Adicionar ao carrinho</button>
-      </div>
-    </section>
-
-  </div>
-
-  <!-- Coluna de visualização -->
-  <div class="stage-col">
-    <div class="stage">
-      <div class="burger-stack" id="burgerStack"></div>
-      <div class="empty-stage" id="emptyStage">
-        <div class="icon">🍔</div>
-        <div>Seu burger aparece aqui conforme você monta</div>
-      </div>
-      <div class="stage-footer">
-        <div>
-          <div class="stage-label">Total do burger</div>
-          <div class="stage-price" id="burgerPrice">R$ 0,00</div>
+  <aside class="preview-col">
+    <div class="preview-card">
+      <div class="preview-stage">
+        <div class="stack-burger" id="burgerStack"></div>
+        <div class="empty-stage" id="emptyStage" style="display:none;">
+          Sua montagem começa com o pão.<br>Adicione um ingrediente para ver o hambúrguer surgir.
         </div>
-        <button class="btn-primary" id="checkout" style="width:auto; padding:13px 26px;">Finalizar</button>
       </div>
     </div>
+    <div class="summary-card">
+      <span class="price-label">Resumo da montagem</span>
+      <ul class="summary-list" id="summaryList"></ul>
+      <div class="price-hero">
+        <div class="price-label">Valor do hambúrguer</div>
+        <div class="price-value" id="burgerPrice">R$ 0,00</div>
+      </div>
+    </div>
+  </aside>
+</main>
+
+<footer class="app-footer">
+  <div class="footer-inner">
+    <div class="footer-totals">
+      <div class="label">Total do pedido</div>
+      <div class="value" id="footTotal">R$ 0,00</div>
+    </div>
+    <div class="footer-actions">
+      <button class="foot-icon-btn" id="btnSalvar" title="Salvar montagem" aria-label="Salvar montagem">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round">
+          <path d="M6 3h12v18l-6-4-6 4z"/>
+        </svg>
+      </button>
+      <button class="foot-icon-btn solid" id="btnAdicionar" title="Adicionar ao carrinho" aria-label="Adicionar ao carrinho">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 4h2l2.4 11h11.2L21 7H7"/>
+          <circle cx="9" cy="20" r="1.4"/><circle cx="17" cy="20" r="1.4"/>
+          <path d="M12 8v5M9.5 10.5h5"/>
+        </svg>
+      </button>
+      <button class="btn-ghost" id="checkout">Concluir</button>
+    </div>
   </div>
+</footer>
 
-</div>
-
-<!-- ============ FOOTER FIXO (mobile) ============ -->
-<div class="footer-bar">
-  <div>
-    <div class="footer-total-label">Total</div>
-    <div class="footer-total" id="footTotal">R$ 0,00</div>
-  </div>
-  <button class="btn-primary" id="checkoutMobile">Finalizar pedido</button>
-</div>
-
-<!-- ============ MODAL: LOGIN ============ -->
+<!-- Modal Login / Cadastro -->
 <div class="overlay" id="loginOverlay">
   <div class="modal">
-    <div class="modal-head">
-      <div>
-        <h2 class="modal-title" id="loginTitle">Entrar</h2>
-        <p class="modal-subtitle" id="loginSubtitle">Use seu telefone e senha para acessar.</p>
-      </div>
-      <button class="modal-close" data-close="loginOverlay">×</button>
-    </div>
-
-    <div class="form-error" id="loginError"></div>
-
+    <button class="close-x" data-close="loginOverlay">×</button>
+    <h3 id="loginTitle">Entrar</h3>
+    <p class="muted-sm" id="loginSubtitle">Use seu telefone e senha para acessar.</p>
     <form id="loginForm">
-      <div class="field" id="nomeField" style="display:none;">
+      <div class="form-field" id="nomeField" style="display:none;">
         <label for="loginNome">Nome</label>
-        <input id="loginNome" type="text" placeholder="Seu nome completo" autocomplete="name">
+        <input id="loginNome" type="text" placeholder="Seu nome" autocomplete="name">
       </div>
-
-      <div class="field" id="telefoneField">
+      <div class="form-field" id="telefoneField">
         <label for="loginTelefone">Telefone</label>
-        <input id="loginTelefone" type="tel" inputmode="numeric" placeholder="(75) 99999-9999" autocomplete="tel" required>
+        <input id="loginTelefone" type="tel" placeholder="(11) 99999-9999" autocomplete="tel" required>
       </div>
-
-      <div class="field" id="emailField" style="display:none;">
+      <div class="form-field" id="emailField" style="display:none;">
         <label for="loginEmail">E-mail</label>
-        <input id="loginEmail" type="email" placeholder="seu@email.com">
+        <input id="loginEmail" type="email" placeholder="voce@exemplo.com.br" autocomplete="email">
       </div>
-
-      <div class="field">
+      <div class="form-field">
         <label for="loginSenha">Senha</label>
         <input id="loginSenha" type="password" placeholder="Mínimo 6 caracteres" autocomplete="current-password" required>
       </div>
-
-      <button type="submit" class="btn-primary" id="loginSubmit">Entrar</button>
+      <p class="error-msg" id="loginError"></p>
+      <button type="submit" class="btn-solid" style="width:100%;" id="loginSubmit">Entrar</button>
     </form>
-
-    <div style="text-align:center; margin-top:16px;">
-      <button class="btn-ghost" id="toggleModo">Criar conta</button>
-    </div>
+    <p class="muted-sm" style="text-align:center; margin-top:16px;">
+      <a href="#" id="toggleModo" style="color:var(--accent-text);">Criar conta</a>
+    </p>
   </div>
 </div>
 
-<!-- ============ MODAL: CHECKOUT ============ -->
+<!-- Modal Checkout em etapas -->
 <div class="overlay" id="checkoutOverlay">
   <div class="modal">
-    <div class="modal-head">
-      <div>
-        <h2 class="modal-title">Finalizar pedido</h2>
-        <p class="modal-subtitle">Só mais alguns passos</p>
-      </div>
-      <button class="modal-close" data-close="checkoutOverlay">×</button>
+    <button class="close-x" data-close="checkoutOverlay">×</button>
+
+    <div class="steps-bar">
+      <span class="step-dot active">1</span>
+      <span class="step-line"></span>
+      <span class="step-dot">2</span>
+      <span class="step-line"></span>
+      <span class="step-dot">3</span>
     </div>
 
-    <div class="steps">
-      <span class="step-dot active"></span>
-      <span class="step-dot"></span>
-      <span class="step-dot"></span>
-    </div>
-
-    <!-- Etapa 1: batata -->
+    <!-- ETAPA 1: BATATA -->
     <div id="etapaBatata">
-      <h3 style="font-family:var(--font-serif); font-size:1.05rem; margin:0 0 12px;">Quer adicionar batata?</h3>
+      <h3>Quer adicionar batata?</h3>
+      <p class="muted-sm">Uma porção a mais deixa o pedido completo.</p>
       <div id="listaBatata"></div>
-      <div style="font-size:0.8rem; color:var(--accent-text); margin-bottom:12px;" id="batataTotal"></div>
-      <div class="btn-row">
-        <button class="btn-outline" id="btnBatataPular">Não, obrigado</button>
-        <button class="btn-primary" id="btnBatataContinuar">Continuar</button>
+      <p class="muted-sm" id="batataTotal" style="margin-top:8px;"></p>
+      <div style="display:flex; gap:10px; margin-top:18px;">
+        <button type="button" class="btn-outline" style="flex:1;" id="btnBatataPular">Pular</button>
+        <button type="button" class="btn-solid" style="flex:1;" id="btnBatataContinuar">Continuar</button>
       </div>
     </div>
 
-    <!-- Etapa 2: bebida -->
+    <!-- ETAPA 2: BEBIDA -->
     <div id="etapaBebida" style="display:none;">
-      <h3 style="font-family:var(--font-serif); font-size:1.05rem; margin:0 0 12px;">Escolha uma bebida</h3>
+      <h3>Escolha uma bebida</h3>
+      <p class="muted-sm">Opcional — pode pular se preferir.</p>
       <div id="listaBebidas"></div>
-      <div class="btn-row">
-        <button class="btn-outline" id="btnVoltarBebida">Voltar</button>
-        <button class="btn-primary" id="btnBebidaContinuar">Continuar</button>
-      </div>
-      <div style="text-align:center; margin-top:10px;">
-        <button class="btn-ghost" id="btnBebidaPular">Pular esta etapa</button>
+      <div style="display:flex; gap:10px; margin-top:18px;">
+        <button type="button" class="btn-ghost" style="flex:0 0 auto;" id="btnVoltarBebida">Voltar</button>
+        <button type="button" class="btn-outline" style="flex:1;" id="btnBebidaPular">Pular</button>
+        <button type="button" class="btn-solid" style="flex:1;" id="btnBebidaContinuar">Continuar</button>
       </div>
     </div>
 
-    <!-- Etapa 3: endereço -->
+    <!-- ETAPA 3: ENDEREÇO -->
     <div id="etapaEndereco" style="display:none;">
-      <h3 style="font-family:var(--font-serif); font-size:1.05rem; margin:0 0 12px;">Onde entregamos?</h3>
+      <h3>Endereço de entrega</h3>
+      <p class="muted-sm">Escolha um endereço e nossa equipe irá confirmar o valor da taxa de entrega pelo whatsapp.</p>
 
       <div id="listaEnderecos"></div>
 
-      <button class="btn-outline" id="btnNovoEndereco" style="width:100%; margin-bottom:14px; display:none;">
-        + Adicionar novo endereço
-      </button>
+      <button type="button" class="btn-outline" id="btnNovoEndereco">+ Novo endereço</button>
 
       <div id="formNovoEndereco">
-        <form id="enderecoForm">
-          <div class="form-error" id="endError"></div>
-
-          <div class="field">
-            <label for="endRotulo">Identificação</label>
-            <input id="endRotulo" type="text" placeholder="Casa, Trabalho..." maxlength="30">
-          </div>
-
-          <div class="field">
-            <label for="endCep">CEP</label>
-            <input id="endCep" type="text" inputmode="numeric" placeholder="00000-000" maxlength="9" required>
-          </div>
-
-          <div class="field">
-            <label for="endRua">Rua</label>
-            <input id="endRua" type="text" placeholder="Nome da rua" required>
-          </div>
-
-          <div class="field">
-            <label for="endNumero">Número</label>
-            <input id="endNumero" type="text" inputmode="numeric" placeholder="123" required>
-          </div>
-
-          <div class="field">
-            <label for="endComplemento">Complemento</label>
-            <input id="endComplemento" type="text" placeholder="Apto, bloco...">
-          </div>
-
-          <div class="field">
-            <label for="endBairro">Bairro</label>
-            <select id="endBairro" required>
-              <option value="">Selecione o bairro</option>
-            </select>
-          </div>
-
-          <div class="field-row">
-            <div class="field">
-              <label for="endCidade">Cidade</label>
-              <input id="endCidade" type="text" value="Paulo Afonso" readonly>
-            </div>
-            <div class="field">
-              <label for="endEstado">Estado</label>
-              <input id="endEstado" type="text" value="BA" readonly>
-            </div>
-          </div>
-
-          <div class="taxa-endereco-label" id="taxaEnderecoLabel"></div>
-
-          <button type="button" class="btn-outline" id="btnSalvarEndereco" style="width:100%;">
-            Salvar endereço
-          </button>
-        </form>
+        <h4>Novo endereço</h4>
+        <div class="form-field">
+          <label for="endRotulo">Rótulo</label>
+          <input id="endRotulo" type="text" placeholder="Casa, Trabalho..." value="Casa">
+        </div>
+        <div class="form-field">
+          <label for="endCep">CEP</label>
+          <input id="endCep" type="text" placeholder="00000-000" maxlength="9">
+        </div>
+        <div class="form-field">
+          <label for="endRua">Rua</label>
+          <input id="endRua" type="text">
+        </div>
+        <div class="form-field">
+          <label for="endNumero">Número</label>
+          <input id="endNumero" type="text">
+        </div>
+        <div class="form-field">
+          <label for="endComplemento">Complemento</label>
+          <input id="endComplemento" type="text" placeholder="Apto, bloco...">
+        </div>
+        <div class="form-field">
+          <label for="endBairro">Bairro</label>
+          <input id="endBairro" type="text">
+        </div>
+        <div class="form-field">
+          <label for="endCidade">Cidade</label>
+          <input id="endCidade" type="text">
+        </div>
+        <div class="form-field">
+          <label for="endEstado">Estado</label>
+          <input id="endEstado" type="text" maxlength="2" placeholder="SP">
+        </div>
+        <button type="button" class="btn-solid" style="width:100%;" id="btnSalvarEndereco">Salvar endereço</button>
       </div>
 
-      <div class="btn-row" style="margin-top:16px;">
-        <button class="btn-outline" id="btnVoltarEndereco">Voltar</button>
-      </div>
-
-      <button type="submit" form="enderecoForm" class="btn-primary" style="margin-top:12px;" id="btnFinalizarPedido">
-        Confirmar pedido
-      </button>
+      <form id="enderecoForm">
+        <p class="error-msg" id="endError"></p>
+        <div style="display:flex; gap:10px; margin-top:16px;">
+          <button type="button" class="btn-ghost" style="flex:0 0 auto;" id="btnVoltarEndereco">Voltar</button>
+          <button type="submit" class="btn-solid" style="flex:1;">Finalizar pedido</button>
+        </div>
+      </form>
     </div>
   </div>
 </div>
 
-<!-- ============ MODAL: RECEITAS ============ -->
+<!-- Modal Menu (receitas) -->
 <div class="overlay" id="receitasOverlay">
-  <div class="modal">
-    <div class="modal-head">
-      <div>
-        <h2 class="modal-title">Receitas da casa</h2>
-        <p class="modal-subtitle">Combinações prontas para você</p>
-      </div>
-      <button class="modal-close" data-close="receitasOverlay">×</button>
-    </div>
+  <div class="modal" style="max-width:560px;">
+    <button class="close-x" data-close="receitasOverlay">×</button>
+    <h3>Menu</h3>
+    <p class="muted-sm">Escolha um clássico e ajuste do seu jeito.</p>
     <div id="listaReceitas"></div>
   </div>
 </div>
 
-<!-- ============ MODAL: PERFIL ============ -->
+<!-- Modal Perfil -->
 <div class="overlay" id="perfilOverlay">
   <div class="modal">
-    <div class="modal-head">
-      <div>
-        <h2 class="modal-title">Meu perfil</h2>
-      </div>
-      <button class="modal-close" data-close="perfilOverlay">×</button>
-    </div>
-
+    <button class="close-x" data-close="perfilOverlay">×</button>
     <div class="perfil-head">
-      <div class="perfil-avatar" id="perfilAvatar">M</div>
-      <div>
-        <div class="perfil-nome" id="perfilNome">Cliente</div>
-        <div class="perfil-tel" id="perfilTelefone"></div>
-      </div>
+      <span class="nome" id="perfilNome">Cliente</span>
+      <span class="tel" id="perfilTelefone"></span>
     </div>
-
-    <h3 style="font-size:0.75rem; text-transform:uppercase; letter-spacing:0.1em; color:var(--text-muted); margin:0 0 10px;">
-      Últimos pedidos
-    </h3>
+    <h4>Últimos pedidos</h4>
     <ul class="drawer-list" id="listaPedidos"></ul>
-
-    <button class="btn-outline" id="btnSair" style="width:100%; margin-top:18px;">
-      Sair da conta
-    </button>
+    <button type="button" class="btn-ghost" style="width:100%; margin-top:16px;" id="btnSair">Sair da conta</button>
   </div>
 </div>
 
-<!-- ============ DRAWER: CARRINHO ============ -->
+<!-- Drawer Carrinho -->
 <div class="drawer-backdrop" id="drawerBackdrop"></div>
-
 <aside class="drawer" id="carrinhoDrawer">
-  <div class="drawer-head">
-    <h2 class="drawer-title">Carrinho</h2>
-    <button class="modal-close" data-close-drawer="carrinhoDrawer">×</button>
-  </div>
-  <div class="drawer-body">
-    <ul class="drawer-list" id="listaCarrinho"></ul>
-  </div>
+  <button class="close-x" data-close-drawer="carrinhoDrawer">×</button>
+  <h3>Seu pedido</h3>
+  <p class="muted-sm">Hambúrgueres adicionados nesta sessão.</p>
+  <ul class="drawer-list" id="listaCarrinho"></ul>
 </aside>
 
-<!-- ============ DRAWER: SALVOS ============ -->
+<!-- Drawer Salvos -->
 <aside class="drawer" id="salvosDrawer">
-  <div class="drawer-head">
-    <h2 class="drawer-title">Meus hambúrgueres</h2>
-    <button class="modal-close" data-close-drawer="salvosDrawer">×</button>
-  </div>
-  <div class="drawer-body">
-    <ul class="drawer-list" id="listaSalvos"></ul>
-  </div>
+  <button class="close-x" data-close-drawer="salvosDrawer">×</button>
+  <h3>Hambúrgueres salvos</h3>
+  <p class="muted-sm">Suas montagens guardadas.</p>
+  <ul class="drawer-list" id="listaSalvos"></ul>
 </aside>
 
-<!-- ============ TOASTS ============ -->
-<div id="toastHost"></div>
+<div class="toast-host" id="toastHost"></div>
 
 <script src="js/config.js"></script>
-<script type="module" src="js/app.js?v=9"></script>
+<script type="module" src="js/app.js"></script>
 </body>
 </html>
