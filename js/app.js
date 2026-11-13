@@ -29,11 +29,9 @@ let idsFixo = ['pao-baixo', 'pao-cima', 'carne'];
 let itensNaBase = ['pao-baixo', 'pao-cima', 'carne', 'alface', 'tomate', 'cebola', 'ketchup', 'maionese'];
 let precosReceita = {};
 
-// Retirada no local (controlada pelo Supabase)
 let retiradaAtiva = false;
-let tipoEntrega = 'entrega'; // 'entrega' | 'retirada'
+let tipoEntrega = 'entrega';
 
-// Taxa de entrega padrão (controlada pelo Supabase)
 let taxaPadrao = 5.00;
 
 const IMG_VERSION = Date.now();
@@ -173,7 +171,6 @@ function renderEnderecosModal() {
 
   let html = '';
 
-  // Card de retirada (só aparece se ativo no Supabase)
   if (retiradaAtiva) {
     html += `
       <label class="endereco-card ${tipoEntrega === 'retirada' ? 'selected' : ''}">
@@ -789,7 +786,7 @@ function adicionarAoCarrinho(nome) {
     return;
   }
   carrinho.itens.push({
-    nome: nome || 'Meu montaê',
+    nome: nome || 'Meu montaí',
     tipo: 'montagem',
     camadas: { ...montagem.camadas },
     inclusos: { ...montagem.inclusos },
@@ -805,7 +802,7 @@ function adicionarAoCarrinho(nome) {
 async function salvarHamburguer() {
   if (!usuario) { abrirLogin(); return; }
   if (!Object.keys(montagem.camadas).length) { toast('Monte algo antes de salvar.'); return; }
-  const nome = prompt('Nome do hambúrguer:', 'Meu montaê');
+  const nome = prompt('Nome do hambúrguer:', 'Meu montaí');
   if (!nome) return;
 
   const { error } = await supabase.from('hamburgueres_salvos').insert({
@@ -1009,7 +1006,6 @@ function configurarEventos() {
   if ($('btnVoltarBebida')) $('btnVoltarBebida').addEventListener('click', () => irParaEtapa('batata'));
   if ($('btnVoltarEndereco')) $('btnVoltarEndereco').addEventListener('click', () => irParaEtapa('bebida'));
 
-  // Seleção de entrega ou retirada
   if ($('listaEnderecos')) {
     $('listaEnderecos').addEventListener('change', e => {
       const r = e.target.closest('input[name="tipoEntrega"]');
@@ -1137,7 +1133,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     await carregarEnderecos();
     renderTudo();
     configurarEventos();
-    console.log('montaê iniciado com sucesso');
+    console.log('montaí iniciado com sucesso');
   } catch (err) {
     console.error('ERRO na inicialização:', err);
   }
