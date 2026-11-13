@@ -650,7 +650,7 @@ function renderReceitas() {
   $('listaReceitas').innerHTML = catalogo.receitas.map(r => `
     <button class="drawer-item" style="width:100%; text-align:left; margin-bottom:8px;" data-receita="${r.id}">
       <div>
-        <div style="font-family:var(--font-serif); font-size:1.1rem;">${esc(r.nome)}</div>
+        <div class="receita-nome">${esc(r.nome)}</div>
         <div class="meta">${esc(r.descricao || '')}</div>
       </div>
       <span style="color:var(--accent-text);">${fmt(precoReceita(r.id))}</span>
