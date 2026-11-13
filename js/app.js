@@ -33,6 +33,9 @@ let precosReceita = {};
 let retiradaAtiva = false;
 let tipoEntrega = 'entrega'; // 'entrega' | 'retirada'
 
+// Taxa de entrega padrão (controlada pelo Supabase)
+let taxaPadrao = 5.00;
+
 const IMG_VERSION = Date.now();
 
 const LAYER_ORDER = [
@@ -103,9 +106,13 @@ async function carregarConfiguracoes() {
     if (c.chave === 'inclusos_padrao') inclusosPadrao = c.valor.split(',').map(s => s.trim());
     if (c.chave === 'ids_fixos') idsFixo = c.valor.split(',').map(s => s.trim());
     if (c.chave === 'itens_na_base') itensNaBase = c.valor.split(',').map(s => s.trim());
-    if (c.chave === 'retirada_ativa') retiradaAtiva = String(c.valor).toLowerCase() === 'true';
+    if (c.chave === 'retirada_ativa') {
+      const v = String(c.valor).trim().toLowerCase();
+      retiradaAtiva = (v === 'true' || v === '1' || v === 'sim');
+    }
+    if (c.chave === 'taxa_entrega_padrao') taxaPadrao = Number(c.valor) || 5.00;
   });
-  console.log('precoBase:', precoBase, '| retiradaAtiva:', retiradaAtiva);
+  console.log('precoBase:', precoBase, '| retiradaAtiva:', retiradaAtiva, '| taxaPadrao:', taxaPadrao);
 }
 
 async function carregarPrecosReceitas() {
@@ -758,7 +765,8 @@ async function abrirPerfil() {
     } else {
       host.innerHTML = data.map(p => {
         const dt = new Date(p.criado_em).toLocaleDateString('pt-BR');
-        const rot = (p.endereco_snapshot && p.endereco_snapshot.rotulo) || 'Endereço';
+        const end = p.endereco_snapshot || {};
+        const rot = end.tipo === 'retirada' ? 'Retirada no local' : (end.rotulo || 'Endereço');
         return `
           <li class="drawer-item">
             <div>
@@ -781,7 +789,7 @@ function adicionarAoCarrinho(nome) {
     return;
   }
   carrinho.itens.push({
-    nome: nome || 'Meu montaí',
+    nome: nome || 'Meu montaê',
     tipo: 'montagem',
     camadas: { ...montagem.camadas },
     inclusos: { ...montagem.inclusos },
@@ -797,7 +805,7 @@ function adicionarAoCarrinho(nome) {
 async function salvarHamburguer() {
   if (!usuario) { abrirLogin(); return; }
   if (!Object.keys(montagem.camadas).length) { toast('Monte algo antes de salvar.'); return; }
-  const nome = prompt('Nome do hambúrguer:', 'Meu montaí');
+  const nome = prompt('Nome do hambúrguer:', 'Meu montaê');
   if (!nome) return;
 
   const { error } = await supabase.from('hamburgueres_salvos').insert({
@@ -876,13 +884,15 @@ async function finalizarPedido(e) {
   }
 
   const subtotal = carrinho.itens.reduce((s, i) => s + i.preco, 0);
+  const taxa = tipoEntrega === 'retirada' ? 0 : taxaPadrao;
+  const total = subtotal + taxa;
 
   const { data: pedido, error: errPed } = await supabase.from('pedidos').insert({
     user_id: usuario.id,
     endereco_snapshot: endereco,
     subtotal,
-    taxa_entrega: 0,
-    total: subtotal,
+    taxa_entrega: taxa,
+    total,
     status: 'pendente'
   }).select().single();
 
@@ -1099,7 +1109,7 @@ function configurarEventos() {
     $('drawerBackdrop').classList.remove('open');
   });
 
-  document.querySelectorAll('input[id$="Cep"], #endCep').forEach(inp => {
+  document.querySelectorAll('#endCep').forEach(inp => {
     inp.addEventListener('blur', async e => {
       const cep = e.target.value.replace(/\D/g, '');
       if (cep.length !== 8) return;
@@ -1127,7 +1137,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     await carregarEnderecos();
     renderTudo();
     configurarEventos();
-    console.log('montaí iniciado com sucesso');
+    console.log('montaê iniciado com sucesso');
   } catch (err) {
     console.error('ERRO na inicialização:', err);
   }
