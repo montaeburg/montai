@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>montaí — Recebimento de pedidos</title>
+<title>montaê — Recebimento de pedidos</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600&family=Jost:wght@400;500;600&display=swap" rel="stylesheet">
@@ -101,7 +101,7 @@ button { font-family: inherit; cursor: pointer; }
 }
 table {
   width: 100%; border-collapse: separate; border-spacing: 0 8px;
-  min-width: 1100px;
+  min-width: 1180px;
 }
 thead th {
   text-align: left; font-size: 0.7rem; text-transform: uppercase;
@@ -132,6 +132,20 @@ tbody td:last-child {
 .total-cell {
   font-family: var(--font-serif); font-size: 1.1rem;
   color: var(--accent-text); white-space: nowrap;
+}
+.taxa-cell { white-space: nowrap; }
+.taxa-input {
+  width: 82px; padding: 6px 8px;
+  background: #2B2E31; border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 8px; color: var(--accent-text);
+  font-family: inherit; font-size: 0.82rem;
+  font-variant-numeric: tabular-nums; text-align: right;
+  outline: none;
+}
+.taxa-input:focus { border-color: var(--accent); }
+.taxa-input:disabled {
+  opacity: 0.45; color: var(--text-muted);
+  border-style: dashed; cursor: not-allowed; text-align: center;
 }
 .endereco-cell { font-size: 0.78rem; color: var(--text-muted); max-width: 220px; }
 .endereco-cell .rotulo { color: var(--text); font-weight: 500; }
@@ -205,7 +219,7 @@ tbody td:last-child {
 <body>
 
 <header class="app-header">
-  <div class="wordmark">monta<span>í</span> · pedidos</div>
+  <div class="wordmark">monta<span>ê</span> · pedidos</div>
   <div class="header-right">
     <span class="live-dot" id="liveStatus">ao vivo</span>
     <button class="btn-mini" id="btnRetirada">Retirada: desativada</button>
@@ -245,6 +259,7 @@ tbody td:last-child {
         <th>Cliente</th>
         <th>Itens</th>
         <th>Total</th>
+        <th>Taxa</th>
         <th>Endereço</th>
         <th>Status</th>
         <th>Horário</th>
@@ -252,7 +267,7 @@ tbody td:last-child {
       </tr>
     </thead>
     <tbody id="corpoTabela">
-      <tr><td colspan="8" class="empty-state">Carregando pedidos...</td></tr>
+      <tr><td colspan="9" class="empty-state">Carregando pedidos...</td></tr>
     </tbody>
   </table>
 </div>
