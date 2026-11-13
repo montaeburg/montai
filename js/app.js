@@ -229,7 +229,7 @@ function renderEnderecosModal() {
           <div>
             <div class="endereco-rotulo">${esc(e.rotulo || 'Casa')}</div>
             <div class="meta">${esc(e.rua || '')}, ${esc(e.numero || '')} — ${esc(e.bairro || '')}</div>
-            <div class="meta">${esc(e.cidade || cidadeFixa)}/${esc(e.estado || estadoFixo)} · CEP ${esc(e.cep || '')}</div>
+            <div class="meta">${esc(e.cidade || cidadeFixa)}/${esc(e.estado || estadoFixo)}</div>
             <div class="meta" style="color:var(--accent-text)">Taxa: ${fmt(taxa)}</div>
           </div>
         </label>
@@ -268,13 +268,12 @@ async function salvarEndereco() {
   if (!usuario) { abrirLogin(); return; }
 
   const rotulo = ($('endRotulo')?.value || '').trim() || 'Casa';
-  const cep = ($('endCep')?.value || '').trim();
   const rua = ($('endRua')?.value || '').trim();
   const numero = ($('endNumero')?.value || '').trim();
   const bairroId = $('endBairro')?.value || '';
 
-  if (!cep || !rua || !numero || !bairroId) {
-    toast('Preencha CEP, rua, número e bairro.');
+  if (!rua || !numero || !bairroId) {
+    toast('Preencha rua, número e bairro.');
     return;
   }
 
@@ -283,7 +282,7 @@ async function salvarEndereco() {
 
   const { data, error } = await supabase.from('enderecos').insert({
     user_id: usuario.id,
-    rotulo, cep, rua, numero,
+    rotulo, rua, numero,
     complemento: ($('endComplemento')?.value || '').trim(),
     bairro: bairro.nome,
     cidade: cidadeFixa,
@@ -936,7 +935,7 @@ async function finalizarPedido(e) {
 
     endereco = {
       rotulo: end.rotulo,
-      cep: end.cep, rua: end.rua, numero: end.numero,
+      rua: end.rua, numero: end.numero,
       complemento: end.complemento, bairro: end.bairro,
       cidade: end.cidade || cidadeFixa,
       estado: end.estado || estadoFixo,
@@ -1171,21 +1170,6 @@ function configurarEventos() {
     document.querySelectorAll('.drawer').forEach(d => d.classList.remove('open'));
     $('drawerBackdrop').classList.remove('open');
   });
-
-  // ViaCEP: preenche apenas a rua. Bairro vem do select, cidade/estado são fixos.
-  const cepInput = $('endCep');
-  if (cepInput) {
-    cepInput.addEventListener('blur', async e => {
-      const cep = e.target.value.replace(/\D/g, '');
-      if (cep.length !== 8) return;
-      try {
-        const r = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
-        const d = await r.json();
-        if (d.erro) return;
-        if ($('endRua')) $('endRua').value = d.logradouro || '';
-      } catch {}
-    });
-  }
 
   // Atualiza a taxa exibida ao trocar o bairro no formulário
   if ($('endBairro')) {
