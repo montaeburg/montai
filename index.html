@@ -81,12 +81,27 @@ input, textarea { font-family: inherit; }
   gap: 32px; padding: 32px 24px 110px;
   max-width: 1280px; margin-left: auto; margin-right: auto;
 }
+/* Cabeçalho da página: logo + título na mesma linha */
+.page-head {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin: 0 0 18px;
+}
+.page-head-logo {
+  width: 64px;
+  height: 64px;
+  object-fit: contain;
+  flex-shrink: 0;
+  display: block;
+}
 .page-title {
   font-family: var(--font-serif);
   font-size: 2.2rem;
   font-weight: 500;
-  margin: 0 0 16px;
+  margin: 0;
   color: var(--text);
+  line-height: 1.1;
 }
 .page-title span { color: var(--accent-text); }
 .section-head { margin: 20px 0 8px; }
@@ -505,6 +520,8 @@ input, textarea { font-family: inherit; }
     -webkit-overflow-scrolling: touch;
   }
   .stack-burger { width: clamp(150px, 46vw, 210px); }
+  .page-head { gap: 12px; margin-bottom: 14px; }
+  .page-head-logo { width: 48px; height: 48px; }
   .page-title { font-size: 1.5rem; }
   .app-header { height: 56px; padding: 0 12px; }
   .app-main { margin-top: 56px; }
@@ -552,7 +569,14 @@ input, textarea { font-family: inherit; }
 </header>
 <main class="app-main">
   <section>
-    <h1 class="page-title">monta<span>í</span> seu hamburguer</h1>
+    <div class="page-head">
+      <img
+        src="https://drkukjvqjnogqhryaayg.supabase.co/storage/v1/object/public/logo/LOGO%20cc.png"
+        alt="montaí"
+        class="page-head-logo"
+      >
+      <h1 class="page-title">monta<span>í</span> seu hamburguer</h1>
+    </div>
     <div class="category-chips" id="chipsCategoria"></div>
     <div class="section-head"><h2>Inclusos no hambúrguer</h2></div>
     <div class="inclusos-chips" id="listaInclusos"></div>
@@ -759,6 +783,6 @@ input, textarea { font-family: inherit; }
 </aside>
 <div class="toast-host" id="toastHost"></div>
 <script src="js/config.js"></script>
-<script type="module" src="js/app.js?v=8"></script>
+<script type="module" src="js/app.js?v=9"></script>
 </body>
 </html>
