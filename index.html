@@ -332,6 +332,17 @@ input, textarea { font-family: inherit; }
 .step-dot.active { background: var(--accent); color: #0A0A0A; border-color: var(--accent); font-weight: 600; }
 .step-dot.done { background: rgba(217,162,74,0.25); color: var(--accent-text); border-color: var(--accent); }
 .step-line { width: 24px; height: 1px; background: var(--border); }
+/* Barra de ações fixa no topo da etapa */
+.etapa-actions {
+  position: sticky; top: 0; z-index: 5;
+  display: flex; gap: 10px;
+  padding: 10px 0 14px;
+  margin: -4px 0 12px;
+  background: #2B2E31;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+.etapa-actions button { flex: 1; }
+.etapa-actions .btn-ghost { flex: 0 0 auto; }
 /* Upsell batata */
 .upsell-card {
   display: flex; align-items: center; gap: 14px;
@@ -383,6 +394,35 @@ input, textarea { font-family: inherit; }
 .endereco-card .meta { font-size: 0.78rem; color: var(--text-muted); }
 #btnNovoEndereco { width: 100%; margin-bottom: 12px; }
 #formNovoEndereco { display: none; }
+/* Resumo de valores no checkout */
+.checkout-resumo {
+  margin: 16px 0 4px;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: rgba(217,162,74,0.06);
+}
+.checkout-resumo .linha {
+  display: flex; justify-content: space-between; align-items: center;
+  font-size: 0.85rem; padding: 4px 0;
+  color: var(--text-muted);
+}
+.checkout-resumo .linha span:last-child {
+  color: var(--text); font-variant-numeric: tabular-nums;
+}
+.checkout-resumo .linha.total {
+  margin-top: 8px; padding-top: 10px;
+  border-top: 1px solid var(--border);
+  font-size: 1rem;
+}
+.checkout-resumo .linha.total span:first-child {
+  color: var(--text); font-weight: 500;
+}
+.checkout-resumo .linha.total span:last-child {
+  font-family: var(--font-serif);
+  font-size: 1.4rem;
+  color: var(--accent-text);
+}
 /* Perfil */
 .perfil-head {
   display: flex; flex-direction: column; gap: 2px;
@@ -592,33 +632,30 @@ input, textarea { font-family: inherit; }
       <span class="step-dot active">1</span>
       <span class="step-line"></span>
       <span class="step-dot">2</span>
-      <span class="step-line"></span>
-      <span class="step-dot">3</span>
     </div>
-    <!-- ETAPA 1: BATATA -->
-    <div id="etapaBatata">
+    <!-- ETAPA 1: EXTRAS (BATATA + BEBIDA) -->
+    <div id="etapaExtras">
+      <div class="etapa-actions">
+        <button type="button" class="btn-outline" id="btnExtrasPular">Pular</button>
+        <button type="button" class="btn-solid" id="btnExtrasContinuar">Continuar</button>
+      </div>
+
       <h3>Quer adicionar batata?</h3>
       <p class="muted-sm">Uma porção a mais deixa o pedido completo.</p>
       <div id="listaBatata"></div>
       <p class="muted-sm" id="batataTotal" style="margin-top:8px;"></p>
-      <div style="display:flex; gap:10px; margin-top:18px;">
-        <button type="button" class="btn-outline" style="flex:1;" id="btnBatataPular">Pular</button>
-        <button type="button" class="btn-solid" style="flex:1;" id="btnBatataContinuar">Continuar</button>
-      </div>
-    </div>
-    <!-- ETAPA 2: BEBIDA -->
-    <div id="etapaBebida" style="display:none;">
-      <h3>Escolha uma bebida</h3>
+
+      <h4>Escolha uma bebida</h4>
       <p class="muted-sm">Opcional — pode pular se preferir.</p>
       <div id="listaBebidas"></div>
-      <div style="display:flex; gap:10px; margin-top:18px;">
-        <button type="button" class="btn-ghost" style="flex:0 0 auto;" id="btnVoltarBebida">Voltar</button>
-        <button type="button" class="btn-outline" style="flex:1;" id="btnBebidaPular">Pular</button>
-        <button type="button" class="btn-solid" style="flex:1;" id="btnBebidaContinuar">Continuar</button>
-      </div>
     </div>
-    <!-- ETAPA 3: ENDEREÇO -->
+    <!-- ETAPA 2: ENDEREÇO -->
     <div id="etapaEndereco" style="display:none;">
+      <div class="etapa-actions">
+        <button type="button" class="btn-ghost" id="btnVoltarEndereco">Voltar</button>
+        <button type="submit" form="enderecoForm" class="btn-solid" id="btnFinalizarPedido">Finalizar pedido</button>
+      </div>
+
       <h3>Endereço de entrega</h3>
       <p class="muted-sm">Escolha um endereço. A taxa de entrega é calculada pelo bairro.</p>
       <div id="listaEnderecos"></div>
@@ -658,12 +695,15 @@ input, textarea { font-family: inherit; }
         <div class="taxa-endereco-label" id="taxaEnderecoLabel"></div>
         <button type="button" class="btn-solid" style="width:100%;" id="btnSalvarEndereco">Salvar endereço</button>
       </div>
+
+      <div class="checkout-resumo" id="checkoutResumo">
+        <div class="linha"><span>Subtotal</span><span id="resumoSubtotal">R$ 0,00</span></div>
+        <div class="linha"><span>Taxa de entrega</span><span id="resumoTaxa">R$ 0,00</span></div>
+        <div class="linha total"><span>Total</span><span id="resumoTotal">R$ 0,00</span></div>
+      </div>
+
       <form id="enderecoForm">
         <p class="error-msg" id="endError"></p>
-        <div style="display:flex; gap:10px; margin-top:16px;">
-          <button type="button" class="btn-ghost" style="flex:0 0 auto;" id="btnVoltarEndereco">Voltar</button>
-          <button type="submit" class="btn-solid" style="flex:1;">Finalizar pedido</button>
-        </div>
       </form>
     </div>
   </div>
@@ -707,6 +747,6 @@ input, textarea { font-family: inherit; }
 </aside>
 <div class="toast-host" id="toastHost"></div>
 <script src="js/config.js"></script>
-<script type="module" src="js/app.js?v=3"></script>
+<script type="module" src="js/app.js?v=5"></script>
 </body>
 </html>
