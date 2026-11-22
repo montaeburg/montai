@@ -476,20 +476,21 @@ function confirmarExtras() {
 function montagemPadrao() {
   montagem.camadas = {};
   montagem.inclusos = {};
-
   catalogo.inclusos.forEach(i => { montagem.inclusos[i.id] = false; });
+  // Marca como selecionados os inclusos com padrao = true na tabela inclusos
+  catalogo.inclusos.forEach(i => {
+    if (i.padrao === true) montagem.inclusos[i.id] = true;
+  });
+  // Mantém compatibilidade com a lista da tabela configuracoes
   inclusosPadrao.forEach(id => {
     if (catalogo.inclusos.some(i => i.id === id)) montagem.inclusos[id] = true;
   });
-
   const paoBaixo = catalogo.ingredientes.find(i => i.layer === 'bun-bottom');
   const carne = catalogo.ingredientes.find(i => i.id === 'carne' || i.layer === 'patty');
   const paoCima = catalogo.ingredientes.find(i => i.layer === 'bun-top');
-
   if (paoBaixo) montagem.camadas[paoBaixo.id] = 1;
   if (carne) montagem.camadas[carne.id] = 1;
   if (paoCima) montagem.camadas[paoCima.id] = 1;
-
   montagem.observacao = '';
   $('obsText').value = '';
   $('obsCounter').textContent = '0/200';
