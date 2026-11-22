@@ -75,6 +75,13 @@ function toast(msg) {
   setTimeout(() => { el.style.transition = 'opacity .3s'; el.style.opacity = '0'; }, 1800);
   setTimeout(() => el.remove(), 2200);
 }
+}
+  window.open('https://wa.me/' + numero + '?text=' + texto, '_blank');
+  const texto = encodeURIComponent(mensagem || '');
+  const numero = cfg.WHATSAPP_NUMERO || '5575992227704';
+  const cfg = window.MONTAE_CONFIG || {};
+function abrirWhatsApp(mensagem) {
+
 
 // ============ CATÁLOGO ============
 async function carregarCatalogo() {
@@ -476,21 +483,20 @@ function confirmarExtras() {
 function montagemPadrao() {
   montagem.camadas = {};
   montagem.inclusos = {};
+
   catalogo.inclusos.forEach(i => { montagem.inclusos[i.id] = false; });
-  // Marca como selecionados os inclusos com padrao = true na tabela inclusos
-  catalogo.inclusos.forEach(i => {
-    if (i.padrao === true) montagem.inclusos[i.id] = true;
-  });
-  // Mantém compatibilidade com a lista da tabela configuracoes
   inclusosPadrao.forEach(id => {
     if (catalogo.inclusos.some(i => i.id === id)) montagem.inclusos[id] = true;
   });
+
   const paoBaixo = catalogo.ingredientes.find(i => i.layer === 'bun-bottom');
   const carne = catalogo.ingredientes.find(i => i.id === 'carne' || i.layer === 'patty');
   const paoCima = catalogo.ingredientes.find(i => i.layer === 'bun-top');
+
   if (paoBaixo) montagem.camadas[paoBaixo.id] = 1;
   if (carne) montagem.camadas[carne.id] = 1;
   if (paoCima) montagem.camadas[paoCima.id] = 1;
+
   montagem.observacao = '';
   $('obsText').value = '';
   $('obsCounter').textContent = '0/200';
@@ -637,6 +643,7 @@ function renderResumo() {
 }
 
 function renderCarrinho() {
+  nomearItensCarrinho();
   const lista = $('listaCarrinho');
   if (!carrinho.itens.length) {
     lista.innerHTML = '<li class="empty-state">Seu carrinho está vazio.</li>';
@@ -869,7 +876,7 @@ async function abrirPerfil() {
         const end = p.endereco_snapshot || {};
         const rot = end.tipo === 'retirada' ? 'Retirada no local' : (end.rotulo || 'Endereço');
         return `
-          <li class="drawer-item">
+          <li class="drawer-item pedido-historico" data-pedido="${p.id}" style="cursor:pointer;" title="Clique para repetir este pedido">
             <div>
               <div>${fmt(p.total)}</div>
               <div class="meta">${dt} · ${esc(rot)}</div>
@@ -1110,24 +1117,16 @@ function renderCheckoutItens() {
   `).join('');
 }
 
-async function repetirUltimoPedido() {
+async function carregarPedidoNoCarrinho(pedidoId) {
   if (!usuario) { abrirLogin(); return; }
-  const { data: pedidos, error } = await supabase
-    .from('pedidos')
-    .select('id, criado_em')
-    .eq('user_id', usuario.id)
-    .order('criado_em', { ascending: false })
-    .limit(1);
-  if (error) { toast('Erro ao buscar pedido.'); return; }
-  const ultimo = pedidos && pedidos[0];
-  if (!ultimo) { toast('Nenhum pedido anterior encontrado.'); return; }
-  const { data: itens, error: errItens } = await supabase
+  const { data: itens, error } = await supabase
     .from('pedido_itens')
     .select('*')
-    .eq('pedido_id', ultimo.id);
-  if (errItens || !itens || !itens.length) { toast('Não foi possível recuperar os itens.'); return; }
+    .eq('pedido_id', pedidoId);
+  if (error) { toast('Erro ao buscar itens do pedido.'); return; }
+  if (!itens || !itens.length) { toast('Este pedido não tem itens.'); return; }
   if (carrinho.itens.length) {
-    if (!confirm('Seu carrinho tem itens. Deseja substituir pelo último pedido?')) return;
+    if (!confirm('Seu carrinho tem itens. Deseja substituir pelos itens deste pedido?')) return;
   }
   carrinho.itens = itens.map(it => ({
     nome: it.nome,
@@ -1143,11 +1142,54 @@ async function repetirUltimoPedido() {
   $('perfilOverlay').classList.remove('open');
   renderCarrinho();
   atualizarTotais();
-  toast('Último pedido adicionado ao carrinho');
+  toast('Itens do pedido adicionados ao carrinho');
+}
+
+function nomearItensCarrinho() {
+  let n = 0;
+  carrinho.itens.forEach(i => {
+    if (i.tipo !== 'montagem') return;
+    n++;
+    const partes = [];
+    if (i.inclusos) {
+      Object.entries(i.inclusos).forEach(([id, ativo]) => {
+        if (!ativo) return;
+        const inc = catalogo.inclusos.find(x => x.id === id);
+        if (inc) partes.push(inc.nome);
+      });
+    }
+    if (i.camadas) {
+      Object.entries(i.camadas).forEach(([id, q]) => {
+        if (itensNaBase.includes(id)) return;
+        const ing = catalogo.ingredientes.find(x => x.id === id);
+        if (ing) partes.push(q > 1 ? `${q}× ${ing.nome}` : ing.nome);
+      });
+    }
+    const lista = partes.length ? partes.join(', ') : 'sem adicionais';
+    i.nome = `H${n} - ${lista}`;
+  });
 }
 
 // ============ EVENTOS ============
 function configurarEventos() {
+
+  }
+    });
+      abrirWhatsApp('Preciso de ajuda com meu pedido');
+    $('btnAjudaPedido').addEventListener('click', () => {
+  if ($('btnAjudaPedido')) {
+  }
+    });
+      abrirWhatsApp('Preciso redefinir minha senha');
+      e.preventDefault();
+    $('btnEsqueciSenha').addEventListener('click', e => {
+  if ($('btnEsqueciSenha')) {
+  }
+    });
+      abrirWhatsApp('Preciso de ajuda com meu pedido');
+      e.preventDefault();
+    $('btnWhatsapp').addEventListener('click', e => {
+  if ($('btnWhatsapp')) {
   $('chipsCategoria').addEventListener('click', e => {
     const chip = e.target.closest('.chip');
     if (!chip) return;
@@ -1372,7 +1414,12 @@ if ($('cupomInput')) {
     if (e.key === 'Enter') { e.preventDefault(); aplicarCupom(); }
   });
 }
-if ($('btnRepetirPedido')) $('btnRepetirPedido').addEventListener('click', repetirUltimoPedido);
+if ($('listaPedidos')) {
+  $('listaPedidos').addEventListener('click', e => {
+    const item = e.target.closest('[data-pedido]');
+    if (item) carregarPedidoNoCarrinho(item.dataset.pedido);
+  });
+}
 
 document.querySelectorAll('[data-close]').forEach(b => {
   b.addEventListener('click', () => {
