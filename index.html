@@ -564,10 +564,12 @@ input, textarea { font-family: inherit; }
 #etapaEndereco #checkoutItens .item-remove:hover { color: #E8806F; }
 
 /* Botão finalizar pedido em verde */
-#btnFinalizarPedido, #btnFinalizarCarrinho {
+#btnFinalizarPedido, #btnFinalizarCarrinho, #btnExtrasContinuar {
   background: #2E7D4F; color: #fff; border-color: #2E7D4F; font-weight: 500;
 }
-#btnFinalizarPedido:hover, #btnFinalizarCarrinho:hover { background: #36A05F; border-color: #36A05F; }
+#btnFinalizarPedido:hover, #btnFinalizarCarrinho:hover, #btnExtrasContinuar:hover {
+  background: #36A05F; border-color: #36A05F;
+}
 </style>
 </head>
 <body>
@@ -587,13 +589,6 @@ input, textarea { font-family: inherit; }
       </svg>
       <span>Menu</span>
     </button>
-<a class="icon-btn" id="btnWhatsapp" href="#" target="_blank" rel="noopener" title="Falar no WhatsApp" aria-label="Falar no WhatsApp">
-      <svg viewBox="0 0 24 24" fill="currentColor" stroke="none">
-        <path d="M17.5 14.4c-.3-.2-1.8-.9-2-1s-.5-.2-.7.1-.8 1-1 1.2-.4.2-.7 0a8 8 0 0 1-2.4-1.5 9 9 0 0 1-1.6-2c-.2-.3 0-.5.1-.6l.5-.6.3-.5v-.5l-1-2.3c-.2-.6-.5-.5-.7-.5h-.6c-.2 0-.5.1-.8.4-.3.3-1 1-1 2.5s1.1 2.9 1.2 3.1c.2.2 2.1 3.2 5.1 4.5.7.3 1.3.5 1.7.6.7.2 1.4.2 1.9.1.6-.1 1.8-.7 2-1.4.3-.7.3-1.3.2-1.4-.1-.1-.3-.2-.6-.3z"/>
-        <path d="M12 2a10 10 0 1 0 5.1 18.6L22 22l-1.4-4.9A10 10 0 0 0 12 2zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2z"/>
-      </svg>
-    </a>
-
     <button class="icon-btn" id="btnSalvos" title="Hambúrgueres salvos" aria-label="Hambúrgueres salvos">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round">
         <path d="M6 3h12v18l-6-4-6 4z"/>
@@ -693,12 +688,6 @@ input, textarea { font-family: inherit; }
       <p class="error-msg" id="loginError"></p>
       <button type="submit" class="btn-solid" style="width:100%;" id="loginSubmit">Entrar</button>
     </form>
-<p class="muted-sm" style="text-align:center; margin-top:12px; margin-bottom:0;">
-      <a href="#" id="btnEsqueciSenha" style="color:var(--text-muted); font-size:0.8rem; text-decoration:underline;">
-        Esqueci minha senha
-      </a>
-    </p>
-
     <p class="muted-sm" style="text-align:center; margin-top:16px;">
       <a href="#" id="toggleModo" style="color:var(--accent-text);">Criar conta</a>
     </p>
@@ -731,7 +720,7 @@ input, textarea { font-family: inherit; }
     </div>
     <!-- ETAPA 2: ENDEREÇO -->
     <div id="etapaEndereco" style="display:none;">
-<div class="etapa-actions">
+      <div class="etapa-actions">
         <button type="button" class="btn-ghost" id="btnVoltarEndereco">Voltar</button>
         <button type="submit" form="enderecoForm" class="btn-solid" id="btnFinalizarPedido">Finalizar pedido</button>
       </div>
@@ -740,21 +729,6 @@ input, textarea { font-family: inherit; }
         <ul class="drawer-list" id="checkoutItens"></ul>
       </div>
 
-      <div class="cupom-box">
-        <label for="cupomInput">Cupom de desconto</label>
-        <div class="cupom-row">
-          <input id="cupomInput" type="text" placeholder="Digite o código" autocomplete="off">
-          <button type="button" class="btn-outline" id="btnAplicarCupom">Aplicar</button>
-        </div>
-        <div class="cupom-msg" id="cupomMsg"></div>
-      </div>
-
-      <div class="checkout-resumo" id="checkoutResumo">
-        <div class="linha"><span>Subtotal</span><span id="resumoSubtotal">R$ 0,00</span></div>
-        <div class="linha"><span>Taxa de entrega</span><span id="resumoTaxa">R$ 0,00</span></div>
-        <div class="linha" id="linhaDesconto" style="display:none;"><span>Desconto</span><span id="resumoDesconto">R$ 0,00</span></div>
-        <div class="linha total"><span>Total</span><span id="resumoTotal">R$ 0,00</span></div>
-      </div>
       <h3>Endereço de entrega</h3>
       <p class="muted-sm">Escolha um endereço. A taxa de entrega é calculada pelo bairro.</p>
       <div id="listaEnderecos"></div>
@@ -795,6 +769,21 @@ input, textarea { font-family: inherit; }
         <button type="button" class="btn-solid" style="width:100%;" id="btnSalvarEndereco">Salvar endereço</button>
       </div>
 
+      <div class="checkout-resumo" id="checkoutResumo">
+        <div class="linha"><span>Subtotal</span><span id="resumoSubtotal">R$ 0,00</span></div>
+        <div class="linha"><span>Taxa de entrega</span><span id="resumoTaxa">R$ 0,00</span></div>
+        <div class="linha" id="linhaDesconto" style="display:none;"><span>Desconto</span><span id="resumoDesconto">R$ 0,00</span></div>
+        <div class="linha total"><span>Total</span><span id="resumoTotal">R$ 0,00</span></div>
+      </div>
+      <div class="cupom-box">
+        <label for="cupomInput">Cupom de desconto</label>
+        <div class="cupom-row">
+          <input id="cupomInput" type="text" placeholder="Digite o código" autocomplete="off">
+          <button type="button" class="btn-outline" id="btnAplicarCupom">Aplicar</button>
+        </div>
+        <div class="cupom-msg" id="cupomMsg"></div>
+      </div>
+
       <form id="enderecoForm">
         <p class="error-msg" id="endError"></p>
       </form>
@@ -808,10 +797,6 @@ input, textarea { font-family: inherit; }
     <h3>Menu</h3>
     <p class="muted-sm">Escolha um clássico e ajuste do seu jeito.</p>
     <div id="listaReceitas"></div>
-
-    </button>
-      Preciso de ajuda com meu pedido
-<button type="button" class="btn-outline" style="width:100%; margin-top:16px;" id="btnAjudaPedido">
   </div>
 </div>
 <!-- Modal Perfil -->
@@ -824,6 +809,7 @@ input, textarea { font-family: inherit; }
     </div>
     <h4>Últimos pedidos</h4>
     <ul class="drawer-list" id="listaPedidos"></ul>
+    <button type="button" class="btn-solid" style="width:100%; margin-top:12px;" id="btnRepetirPedido">Repetir último pedido</button>
     <button type="button" class="btn-ghost" style="width:100%; margin-top:16px;" id="btnSair">Sair da conta</button>
   </div>
 </div>
