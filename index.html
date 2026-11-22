@@ -433,6 +433,7 @@ input, textarea { font-family: inherit; }
   font-size: 1.1rem;
   color: var(--accent-text);
   font-weight: 500;
+  margin: 0;
 }
 /* Perfil */
 .perfil-head {
@@ -452,6 +453,15 @@ input, textarea { font-family: inherit; }
 .status-entrega { background: rgba(150,120,220,0.18); color: #B79EE8; }
 .status-entregue { background: rgba(70,160,110,0.18); color: #6FC79A; }
 .status-cancelado { background: rgba(200,90,80,0.18); color: #E8806F; }
+/* Card de pedido clicável no perfil */
+.pedido-card {
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+}
+.pedido-card:hover {
+  border-color: rgba(217,162,74,0.5);
+  background: var(--surface-2);
+}
 /* Drawer */
 .drawer {
   position: fixed; top: 0; right: 0; bottom: 0; width: 100%; max-width: 420px;
@@ -589,6 +599,12 @@ input, textarea { font-family: inherit; }
       </svg>
       <span>Menu</span>
     </button>
+    <button class="icon-btn" id="btnWhatsapp" title="Falar no WhatsApp" aria-label="Falar no WhatsApp">
+      <svg viewBox="0 0 24 24" fill="currentColor" stroke="none">
+        <path d="M17.5 14.4c-.3-.2-1.8-.9-2-1s-.5-.2-.7.1-.8 1-1 1.2-.4.2-.7 0a8 8 0 0 1-2.4-1.5 9 9 0 0 1-1.6-2c-.2-.3 0-.5.1-.6l.5-.6.3-.5v-.5l-1-2.3c-.2-.6-.5-.5-.7-.5h-.6c-.2 0-.5.1-.8.4-.3.3-1 1-1 2.5s1.1 2.9 1.2 3.1c.2.2 2.1 3.2 5.1 4.5.7.3 1.3.5 1.7.6.7.2 1.4.2 1.9.1.6-.1 1.8-.7 2-1.4.3-.7.3-1.3.2-1.4-.1-.1-.3-.2-.6-.3z"/>
+        <path d="M12 2a10 10 0 1 0 5.1 18.6L22 22l-1.4-4.9A10 10 0 0 0 12 2zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2z"/>
+      </svg>
+    </button>
     <button class="icon-btn" id="btnSalvos" title="Hambúrgueres salvos" aria-label="Hambúrgueres salvos">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round">
         <path d="M6 3h12v18l-6-4-6 4z"/>
@@ -688,6 +704,11 @@ input, textarea { font-family: inherit; }
       <p class="error-msg" id="loginError"></p>
       <button type="submit" class="btn-solid" style="width:100%;" id="loginSubmit">Entrar</button>
     </form>
+    <p class="muted-sm" style="text-align:center; margin-top:12px; margin-bottom:0;">
+      <a href="#" id="btnEsqueciSenha" style="color:var(--text-muted); font-size:0.8rem; text-decoration:underline;">
+        Esqueci minha senha
+      </a>
+    </p>
     <p class="muted-sm" style="text-align:center; margin-top:16px;">
       <a href="#" id="toggleModo" style="color:var(--accent-text);">Criar conta</a>
     </p>
@@ -809,7 +830,6 @@ input, textarea { font-family: inherit; }
     </div>
     <h4>Últimos pedidos</h4>
     <ul class="drawer-list" id="listaPedidos"></ul>
-    <button type="button" class="btn-solid" style="width:100%; margin-top:12px;" id="btnRepetirPedido">Repetir último pedido</button>
     <button type="button" class="btn-ghost" style="width:100%; margin-top:16px;" id="btnSair">Sair da conta</button>
   </div>
 </div>
