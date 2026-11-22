@@ -22,7 +22,9 @@ let bairros = [];
 
 let etapaCheckout = 'extras';
 let qtdBatata = 0;
-let bebidaSelecionada = null;
+let batataSelecionada = null;
+let bebidasSelecionadas = [];
+let extrasNoCarrinho = [];
 
 let precoBase = 12.00;
 let inclusosPadrao = ['alface', 'tomate', 'cebola', 'ketchup', 'maionese'];
@@ -76,6 +78,12 @@ function toast(msg) {
   setTimeout(() => el.remove(), 2200);
 }
 
+// ============ WHATSAPP ============
+const WHATSAPP_NUMERO = '5575992227704';
+function abrirWhatsApp(mensagem) {
+  const texto = encodeURIComponent(mensagem || '');
+  window.open('https://wa.me/' + WHATSAPP_NUMERO + '?text=' + texto, '_blank');
+}
 // ============ CATÁLOGO ============
 async function carregarCatalogo() {
   const consultas = await Promise.all([
@@ -340,7 +348,9 @@ async function salvarEndereco() {
 function abrirCheckout() {
   etapaCheckout = 'extras';
   qtdBatata = 0;
-  bebidaSelecionada = null;
+  batataSelecionada = null;
+  bebidasSelecionadas = [];
+  extrasNoCarrinho = [];
   tipoEntrega = 'entrega';
   renderEtapa();
   $('checkoutOverlay').classList.add('open');
@@ -412,15 +422,13 @@ function atualizarQtdBatata() {
 function renderBebidas() {
   const host = $('listaBebidas');
   if (!host) return;
-
   if (!catalogo.bebidas.length) {
     host.innerHTML = '<p class="empty-state">Nenhuma bebida disponível.</p>';
     return;
   }
-
   host.innerHTML = catalogo.bebidas.map(b => `
-    <label class="bebida-card ${bebidaSelecionada === b.id ? 'selected' : ''}">
-      <input type="radio" name="bebSel" value="${b.id}" ${bebidaSelecionada === b.id ? 'checked' : ''}>
+    <label class="bebida-card ${bebidasSelecionadas.includes(b.id) ? 'selected' : ''}">
+      <input type="checkbox" name="bebSel" value="${b.id}" ${bebidasSelecionadas.includes(b.id) ? 'checked' : ''}>
       ${b.imagem_url ? `<img src="${imgUrl(b.imagem_url)}" alt="${esc(b.nome)}" class="bebida-img">` : ''}
       <div class="bebida-info">
         <div class="bebida-nome">${esc(b.nome)}</div>
@@ -437,10 +445,17 @@ function irParaEtapa(etapa) {
 }
 
 function confirmarExtras() {
+  // Remove os itens de extras que foram adicionados numa confirmação anterior
+  if (extrasNoCarrinho.length) {
+    carrinho.itens = carrinho.itens.filter(i => !extrasNoCarrinho.includes(i));
+    extrasNoCarrinho = [];
+  }
   if (qtdBatata > 0) {
-    const batata = catalogo.extras[0];
+    const batata = batataSelecionada
+      ? catalogo.extras.find(x => x.id === batataSelecionada)
+      : catalogo.extras[0];
     if (batata) {
-      carrinho.itens.push({
+      const item = {
         nome: batata.nome,
         tipo: 'adicional',
         camadas: {},
@@ -448,27 +463,27 @@ function confirmarExtras() {
         observacao: '',
         preco: Number(batata.preco) * qtdBatata,
         quantidade: qtdBatata
-      });
-      renderCarrinho();
+      };
+      carrinho.itens.push(item);
+      extrasNoCarrinho.push(item);
     }
   }
-
-  if (bebidaSelecionada) {
-    const b = catalogo.bebidas.find(x => x.id === bebidaSelecionada);
-    if (b) {
-      carrinho.itens.push({
-        nome: b.nome + (b.tamanho ? ` ${b.tamanho}` : ''),
-        tipo: 'bebida',
-        camadas: {},
-        inclusos: {},
-        observacao: '',
-        preco: Number(b.preco),
-        quantidade: 1
-      });
-      renderCarrinho();
-    }
-  }
-
+  bebidasSelecionadas.forEach(idBebida => {
+    const b = catalogo.bebidas.find(x => x.id === idBebida);
+    if (!b) return;
+    const item = {
+      nome: b.nome + (b.tamanho ? ' ' + b.tamanho : ''),
+      tipo: 'bebida',
+      camadas: {},
+      inclusos: {},
+      observacao: '',
+      preco: Number(b.preco),
+      quantidade: 1
+    };
+    carrinho.itens.push(item);
+    extrasNoCarrinho.push(item);
+  });
+  renderCarrinho();
   irParaEtapa('endereco');
 }
 
@@ -664,7 +679,7 @@ function renderReceitas() {
   $('listaReceitas').innerHTML = catalogo.receitas.map(r => `
     <button class="drawer-item" style="width:100%; text-align:left; margin-bottom:8px;" data-receita="${r.id}">
       <div>
-        <div class="receita-nome">${esc(r.nome)}</div>
+        <h1 class="receita-nome">${esc(r.nome)}</h1>
         <div class="meta">${esc(r.descricao || '')}</div>
       </div>
       <span style="color:var(--accent-text);">${fmt(precoReceita(r.id))}</span>
@@ -869,7 +884,7 @@ async function abrirPerfil() {
         const end = p.endereco_snapshot || {};
         const rot = end.tipo === 'retirada' ? 'Retirada no local' : (end.rotulo || 'Endereço');
         return `
-          <li class="drawer-item">
+          <li class="drawer-item pedido-card" data-pedido="${p.id}">
             <div>
               <div>${fmt(p.total)}</div>
               <div class="meta">${dt} · ${esc(rot)}</div>
@@ -1028,6 +1043,7 @@ async function finalizarPedido(e) {
   }
 
   carrinho.itens = [];
+  extrasNoCarrinho = [];
   pedidoEmFechamento = false;
   cupomAplicado = null;
   $('checkoutOverlay').classList.remove('open');
@@ -1138,6 +1154,8 @@ async function repetirUltimoPedido() {
     preco: Number(it.preco_unitario) * (it.quantidade || 1),
     quantidade: it.quantidade || 1
   }));
+  extrasNoCarrinho = [];
+  extrasNoCarrinho = [];
   pedidoEmFechamento = false;
   cupomAplicado = null;
   $('perfilOverlay').classList.remove('open');
@@ -1145,9 +1163,50 @@ async function repetirUltimoPedido() {
   atualizarTotais();
   toast('Último pedido adicionado ao carrinho');
 }
+async function carregarPedidoNoCarrinho(pedidoId) {
+  if (!usuario) { abrirLogin(); return; }
+  if (!pedidoId) return;
+  const { data: itens, error } = await supabase
+    .from('pedido_itens')
+    .select('*')
+    .eq('pedido_id', pedidoId);
+  if (error || !itens || !itens.length) {
+    toast('Não foi possível recuperar os itens do pedido.');
+    return;
+  }
+  if (carrinho.itens.length) {
+    if (!confirm('Seu carrinho tem itens. Deseja substituir por este pedido?')) return;
+  }
+  carrinho.itens = itens.map(it => ({
+    nome: it.nome,
+    tipo: it.tipo || 'montagem',
+    camadas: it.camadas || {},
+    inclusos: it.inclusos || {},
+    observacao: it.observacao || '',
+    preco: Number(it.preco_unitario) * (it.quantidade || 1),
+    quantidade: it.quantidade || 1
+  }));
+  pedidoEmFechamento = false;
+  cupomAplicado = null;
+  $('perfilOverlay').classList.remove('open');
+  renderCarrinho();
+  atualizarTotais();
+  toast('Itens do pedido adicionados ao carrinho');
+}
 
 // ============ EVENTOS ============
 function configurarEventos() {
+  if ($('btnWhatsapp')) {
+    $('btnWhatsapp').addEventListener('click', () => {
+      abrirWhatsApp('Preciso de ajuda com meu pedido');
+    });
+  }
+  if ($('btnEsqueciSenha')) {
+    $('btnEsqueciSenha').addEventListener('click', e => {
+      e.preventDefault();
+      abrirWhatsApp('Preciso redefinir minha senha');
+    });
+  }
   $('chipsCategoria').addEventListener('click', e => {
     const chip = e.target.closest('.chip');
     if (!chip) return;
@@ -1202,6 +1261,7 @@ $('checkout').addEventListener('click', async () => {
       const inc = e.target.closest('[data-bat-inc]');
       const dec = e.target.closest('[data-bat-dec]');
       if (inc) {
+        batataSelecionada = inc.dataset.batInc;
         qtdBatata++;
         const el = $('batQtd-' + inc.dataset.batInc);
         if (el) el.textContent = qtdBatata;
@@ -1209,6 +1269,7 @@ $('checkout').addEventListener('click', async () => {
       }
       if (dec) {
         if (qtdBatata > 0) qtdBatata--;
+        if (qtdBatata === 0) batataSelecionada = null;
         const el = $('batQtd-' + dec.dataset.batDec);
         if (el) el.textContent = qtdBatata;
         atualizarQtdBatata();
@@ -1219,14 +1280,22 @@ $('checkout').addEventListener('click', async () => {
   if ($('btnExtrasContinuar')) $('btnExtrasContinuar').addEventListener('click', confirmarExtras);
   if ($('btnExtrasPular')) $('btnExtrasPular').addEventListener('click', () => {
     qtdBatata = 0;
-    bebidaSelecionada = null;
+    batataSelecionada = null;
+    bebidasSelecionadas = [];
     irParaEtapa('endereco');
   });
 
   if ($('listaBebidas')) {
     $('listaBebidas').addEventListener('change', e => {
-      const r = e.target.closest('input[name="bebSel"]');
-      if (r) { bebidaSelecionada = r.value; renderBebidas(); }
+      const cb = e.target.closest('input[name="bebSel"]');
+      if (!cb) return;
+      const id = cb.value;
+      if (cb.checked) {
+        if (!bebidasSelecionadas.includes(id)) bebidasSelecionadas.push(id);
+      } else {
+        bebidasSelecionadas = bebidasSelecionadas.filter(x => x !== id);
+      }
+      renderBebidas();
     });
   }
 
@@ -1347,6 +1416,7 @@ if ($('btnLimparCarrinho')) {
     if (!carrinho.itens.length) { toast('Carrinho já está vazio.'); return; }
     if (!confirm('Limpar todos os itens do carrinho?')) return;
     carrinho.itens = [];
+    extrasNoCarrinho = [];
     pedidoEmFechamento = false;
     cupomAplicado = null;
     renderCarrinho();
@@ -1372,7 +1442,12 @@ if ($('cupomInput')) {
     if (e.key === 'Enter') { e.preventDefault(); aplicarCupom(); }
   });
 }
-if ($('btnRepetirPedido')) $('btnRepetirPedido').addEventListener('click', repetirUltimoPedido);
+if ($('listaPedidos')) {
+  $('listaPedidos').addEventListener('click', e => {
+    const card = e.target.closest('[data-pedido]');
+    if (card) carregarPedidoNoCarrinho(card.dataset.pedido);
+  });
+}
 
 document.querySelectorAll('[data-close]').forEach(b => {
   b.addEventListener('click', () => {
