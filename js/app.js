@@ -1,3 +1,4 @@
+
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const SUPABASE_URL = window.MONTAE_CONFIG.SUPABASE_URL;
@@ -32,8 +33,6 @@ let precosReceita = {};
 
 let retiradaAtiva = false;
 let tipoEntrega = 'entrega';
-let pedidoEmFechamento = false;
-let cupomAplicado = null;
 
 let taxaPadrao = 5.00;
 let cidadeFixa = 'Paulo Afonso';
@@ -75,13 +74,13 @@ function toast(msg) {
   setTimeout(() => { el.style.transition = 'opacity .3s'; el.style.opacity = '0'; }, 1800);
   setTimeout(() => el.remove(), 2200);
 }
-}
-  window.open('https://wa.me/' + numero + '?text=' + texto, '_blank');
-  const texto = encodeURIComponent(mensagem || '');
-  const numero = cfg.WHATSAPP_NUMERO || '5575992227704';
-  const cfg = window.MONTAE_CONFIG || {};
-function abrirWhatsApp(mensagem) {
 
+function abrirWhatsApp(mensagem) {
+  const cfg = window.MONTAE_CONFIG || {};
+  const numero = cfg.WHATSAPP_NUMERO || '5575992227704';
+  const texto = encodeURIComponent(mensagem || '');
+  window.open('https://wa.me/' + numero + '?text=' + texto, '_blank');
+}
 
 // ============ CATÁLOGO ============
 async function carregarCatalogo() {
@@ -287,25 +286,15 @@ function atualizarResumoCheckout() {
   const taxaEl = $('resumoTaxa');
   const totEl = $('resumoTotal');
   if (!subEl || !taxaEl || !totEl) return;
+
   const subtotal = carrinho.itens.reduce((s, i) => s + i.preco, 0);
   const taxa = calcularTaxaAtual();
-  const base = subtotal + taxa;
-  const desconto = calcularDesconto(base);
+
   subEl.textContent = fmt(subtotal);
   taxaEl.textContent = tipoEntrega === 'retirada'
     ? 'Grátis'
     : (taxa > 0 ? fmt(taxa) : 'A confirmar');
-  const linhaDesc = $('linhaDesconto');
-  const elDesc = $('resumoDesconto');
-  if (linhaDesc && elDesc) {
-    if (desconto > 0) {
-      linhaDesc.style.display = 'flex';
-      elDesc.textContent = '-' + fmt(desconto);
-    } else {
-      linhaDesc.style.display = 'none';
-    }
-  }
-  totEl.textContent = fmt(Math.max(0, base - desconto));
+  totEl.textContent = fmt(subtotal + taxa);
 }
 
 async function salvarEndereco() {
@@ -373,7 +362,6 @@ function renderEtapa() {
     renderBebidas();
   }
   if (etapaCheckout === 'endereco') {
-    renderCheckoutItens();
     renderEnderecosModal();
     atualizarResumoCheckout();
   }
@@ -483,20 +471,19 @@ function confirmarExtras() {
 function montagemPadrao() {
   montagem.camadas = {};
   montagem.inclusos = {};
-
   catalogo.inclusos.forEach(i => { montagem.inclusos[i.id] = false; });
+  catalogo.inclusos.forEach(i => {
+    if (i.padrao === true) montagem.inclusos[i.id] = true;
+  });
   inclusosPadrao.forEach(id => {
     if (catalogo.inclusos.some(i => i.id === id)) montagem.inclusos[id] = true;
   });
-
   const paoBaixo = catalogo.ingredientes.find(i => i.layer === 'bun-bottom');
   const carne = catalogo.ingredientes.find(i => i.id === 'carne' || i.layer === 'patty');
   const paoCima = catalogo.ingredientes.find(i => i.layer === 'bun-top');
-
   if (paoBaixo) montagem.camadas[paoBaixo.id] = 1;
   if (carne) montagem.camadas[carne.id] = 1;
   if (paoCima) montagem.camadas[paoCima.id] = 1;
-
   montagem.observacao = '';
   $('obsText').value = '';
   $('obsCounter').textContent = '0/200';
@@ -643,7 +630,6 @@ function renderResumo() {
 }
 
 function renderCarrinho() {
-  nomearItensCarrinho();
   const lista = $('listaCarrinho');
   if (!carrinho.itens.length) {
     lista.innerHTML = '<li class="empty-state">Seu carrinho está vazio.</li>';
@@ -705,8 +691,7 @@ async function renderSalvos() {
 }
 
 function atualizarTotais() {
-  const totalCarrinho = carrinho.itens.reduce((s, i) => s + i.preco, 0);
-  const total = pedidoEmFechamento ? totalCarrinho : precoMontagem() + totalCarrinho;
+  const total = precoMontagem() + carrinho.itens.reduce((s, i) => s + i.preco, 0);
   $('footTotal').textContent = fmt(total);
 }
 
@@ -876,7 +861,7 @@ async function abrirPerfil() {
         const end = p.endereco_snapshot || {};
         const rot = end.tipo === 'retirada' ? 'Retirada no local' : (end.rotulo || 'Endereço');
         return `
-          <li class="drawer-item pedido-historico" data-pedido="${p.id}" style="cursor:pointer;" title="Clique para repetir este pedido">
+          <li class="drawer-item">
             <div>
               <div>${fmt(p.total)}</div>
               <div class="meta">${dt} · ${esc(rot)}</div>
@@ -998,8 +983,7 @@ async function finalizarPedido(e) {
   }
 
   const subtotal = carrinho.itens.reduce((s, i) => s + i.preco, 0);
-  const desconto = calcularDesconto(subtotal + taxa);
-  const total = Math.max(0, subtotal + taxa - desconto);
+  const total = subtotal + taxa;
 
   const { data: pedido, error: errPed } = await supabase.from('pedidos').insert({
     user_id: usuario.id,
@@ -1007,9 +991,7 @@ async function finalizarPedido(e) {
     subtotal,
     taxa_entrega: taxa,
     total,
-    status: 'pendente',
-    cupom_codigo: cupomAplicado ? cupomAplicado.codigo : null,
-    desconto: desconto,
+    status: 'pendente'
   }).select().single();
 
   if (errPed) {
@@ -1035,161 +1017,34 @@ async function finalizarPedido(e) {
   }
 
   carrinho.itens = [];
-  pedidoEmFechamento = false;
-  cupomAplicado = null;
   $('checkoutOverlay').classList.remove('open');
   if ($('enderecoForm')) $('enderecoForm').reset();
   if ($('endCidade')) $('endCidade').value = cidadeFixa;
   if ($('endEstado')) $('endEstado').value = estadoFixo;
-  if ($('cupomInput')) $('cupomInput').value = '';
-  if ($('cupomMsg')) { $('cupomMsg').textContent = ''; $('cupomMsg').className = 'cupom-msg'; }
   renderCarrinho();
   toast('Pedido realizado!');
 }
 
-function calcularDesconto(base) {
-  if (!cupomAplicado) return 0;
-  let d = 0;
-  if (cupomAplicado.tipo === 'percentual') {
-    d = base * (Number(cupomAplicado.valor) / 100);
-  } else {
-    d = Number(cupomAplicado.valor);
-  }
-  return Math.min(d, base);
-}
-
-async function aplicarCupom() {
-  const inp = $('cupomInput');
-  const msg = $('cupomMsg');
-  if (!inp || !msg) return;
-  const codigo = (inp.value || '').trim().toUpperCase();
-  msg.className = 'cupom-msg';
-  msg.textContent = '';
-  if (!codigo) { msg.textContent = 'Digite um código.'; msg.className = 'cupom-msg err'; return; }
-  const { data, error } = await supabase
-    .from('cupons')
-    .select('*')
-    .eq('codigo', codigo)
-    .eq('ativo', true)
-    .maybeSingle();
-  if (error) { msg.textContent = 'Erro ao validar cupom.'; msg.className = 'cupom-msg err'; return; }
-  if (!data) { msg.textContent = 'Cupom inválido ou expirado.'; msg.className = 'cupom-msg err'; cupomAplicado = null; atualizarResumoCheckout(); return; }
-  if (data.valido_ate) {
-    const hoje = new Date(); hoje.setHours(0,0,0,0);
-    const fim = new Date(data.valido_ate + 'T23:59:59');
-    if (fim < hoje) { msg.textContent = 'Cupom expirado.'; msg.className = 'cupom-msg err'; cupomAplicado = null; atualizarResumoCheckout(); return; }
-  }
-  const subtotal = carrinho.itens.reduce((s, i) => s + i.preco, 0);
-  const base = subtotal + calcularTaxaAtual();
-  if (data.valor_minimo && base < Number(data.valor_minimo)) {
-    msg.textContent = 'Pedido mínimo de ' + fmt(data.valor_minimo) + ' para este cupom.';
-    msg.className = 'cupom-msg err'; cupomAplicado = null; atualizarResumoCheckout(); return;
-  }
-  cupomAplicado = data;
-  const d = calcularDesconto(base);
-  msg.textContent = 'Cupom aplicado: -' + fmt(d);
-  msg.className = 'cupom-msg ok';
-  atualizarResumoCheckout();
-}
-
-function renderCheckoutItens() {
-  const host = $('checkoutItens');
-  if (!host) return;
-  if (!carrinho.itens.length) {
-    host.innerHTML = '<li class="empty-state">Nenhum item no pedido.</li>';
-    return;
-  }
-  host.innerHTML = carrinho.itens.map((i, idx) => `
-    <li class="drawer-item">
-      <div style="min-width:0;">
-        <div class="item-nome">${esc(i.nome)}</div>
-        <div class="meta">${fmt(i.preco)}</div>
-      </div>
-      <div style="display:flex; align-items:center; gap:6px; flex-shrink:0;">
-        <div class="qty-control">
-          <button type="button" data-ck-dec="${idx}">−</button>
-          <span>${i.quantidade || 1}</span>
-          <button type="button" data-ck-inc="${idx}">+</button>
-        </div>
-        <button type="button" class="item-remove" data-ck-del="${idx}" aria-label="Excluir">×</button>
-      </div>
-    </li>
-  `).join('');
-}
-
-async function carregarPedidoNoCarrinho(pedidoId) {
-  if (!usuario) { abrirLogin(); return; }
-  const { data: itens, error } = await supabase
-    .from('pedido_itens')
-    .select('*')
-    .eq('pedido_id', pedidoId);
-  if (error) { toast('Erro ao buscar itens do pedido.'); return; }
-  if (!itens || !itens.length) { toast('Este pedido não tem itens.'); return; }
-  if (carrinho.itens.length) {
-    if (!confirm('Seu carrinho tem itens. Deseja substituir pelos itens deste pedido?')) return;
-  }
-  carrinho.itens = itens.map(it => ({
-    nome: it.nome,
-    tipo: it.tipo || 'montagem',
-    camadas: it.camadas || {},
-    inclusos: it.inclusos || {},
-    observacao: it.observacao || '',
-    preco: Number(it.preco_unitario) * (it.quantidade || 1),
-    quantidade: it.quantidade || 1
-  }));
-  pedidoEmFechamento = false;
-  cupomAplicado = null;
-  $('perfilOverlay').classList.remove('open');
-  renderCarrinho();
-  atualizarTotais();
-  toast('Itens do pedido adicionados ao carrinho');
-}
-
-function nomearItensCarrinho() {
-  let n = 0;
-  carrinho.itens.forEach(i => {
-    if (i.tipo !== 'montagem') return;
-    n++;
-    const partes = [];
-    if (i.inclusos) {
-      Object.entries(i.inclusos).forEach(([id, ativo]) => {
-        if (!ativo) return;
-        const inc = catalogo.inclusos.find(x => x.id === id);
-        if (inc) partes.push(inc.nome);
-      });
-    }
-    if (i.camadas) {
-      Object.entries(i.camadas).forEach(([id, q]) => {
-        if (itensNaBase.includes(id)) return;
-        const ing = catalogo.ingredientes.find(x => x.id === id);
-        if (ing) partes.push(q > 1 ? `${q}× ${ing.nome}` : ing.nome);
-      });
-    }
-    const lista = partes.length ? partes.join(', ') : 'sem adicionais';
-    i.nome = `H${n} - ${lista}`;
-  });
-}
-
 // ============ EVENTOS ============
 function configurarEventos() {
-
-  }
-    });
-      abrirWhatsApp('Preciso de ajuda com meu pedido');
-    $('btnAjudaPedido').addEventListener('click', () => {
-  if ($('btnAjudaPedido')) {
-  }
-    });
-      abrirWhatsApp('Preciso redefinir minha senha');
-      e.preventDefault();
-    $('btnEsqueciSenha').addEventListener('click', e => {
-  if ($('btnEsqueciSenha')) {
-  }
-    });
-      abrirWhatsApp('Preciso de ajuda com meu pedido');
-      e.preventDefault();
-    $('btnWhatsapp').addEventListener('click', e => {
   if ($('btnWhatsapp')) {
+    $('btnWhatsapp').addEventListener('click', e => {
+      e.preventDefault();
+      abrirWhatsApp('Preciso de ajuda com meu pedido');
+    });
+  }
+  if ($('btnEsqueciSenha')) {
+    $('btnEsqueciSenha').addEventListener('click', e => {
+      e.preventDefault();
+      abrirWhatsApp('Preciso redefinir minha senha');
+    });
+  }
+  if ($('btnAjudaPedido')) {
+    $('btnAjudaPedido').addEventListener('click', () => {
+      abrirWhatsApp('Preciso de ajuda com meu pedido');
+    });
+  }
+
   $('chipsCategoria').addEventListener('click', e => {
     const chip = e.target.closest('.chip');
     if (!chip) return;
@@ -1226,18 +1081,16 @@ function configurarEventos() {
   $('btnAdicionar').addEventListener('click', () => adicionarAoCarrinho());
   $('btnSalvar').addEventListener('click', salvarHamburguer);
 
-$('checkout').addEventListener('click', async () => {
-  if (!usuario) { abrirLogin(); return; }
-  if (!carrinho.itens.length && !Object.keys(montagem.camadas).length) {
-    toast('Monte ou adicione algo antes de concluir.');
-    return;
-  }
-  if (Object.keys(montagem.camadas).length) adicionarAoCarrinho();
-  pedidoEmFechamento = true;
-  atualizarTotais();
-  await carregarEnderecos();
-  abrirCheckout();
-});
+  $('checkout').addEventListener('click', async () => {
+    if (!usuario) { abrirLogin(); return; }
+    if (!carrinho.itens.length && !Object.keys(montagem.camadas).length) {
+      toast('Monte ou adicione algo antes de concluir.');
+      return;
+    }
+    if (Object.keys(montagem.camadas).length) adicionarAoCarrinho();
+    await carregarEnderecos();
+    abrirCheckout();
+  });
 
   if ($('listaBatata')) {
     $('listaBatata').addEventListener('click', e => {
@@ -1359,80 +1212,9 @@ $('checkout').addEventListener('click', async () => {
     });
   }
 
-if ($('checkoutItens')) {
-  $('checkoutItens').addEventListener('click', e => {
-    const inc = e.target.closest('[data-ck-inc]');
-    const dec = e.target.closest('[data-ck-dec]');
-    const del = e.target.closest('[data-ck-del]');
-    if (inc) {
-      const i = carrinho.itens[+inc.dataset.ckInc];
-      if (i) { const q = (i.quantidade || 1) + 1; i.preco = (i.preco / (i.quantidade || 1)) * q; i.quantidade = q; }
-    }
-    if (dec) {
-      const i = carrinho.itens[+dec.dataset.ckDec];
-      if (i) {
-        const q = (i.quantidade || 1) - 1;
-        if (q <= 0) { carrinho.itens.splice(+dec.dataset.ckDec, 1); }
-        else { i.preco = (i.preco / (i.quantidade || 1)) * q; i.quantidade = q; }
-      }
-    }
-    if (del) { carrinho.itens.splice(+del.dataset.ckDel, 1); }
-    if (inc || dec || del) {
-      renderCheckoutItens();
-      renderCarrinho();
-      atualizarResumoCheckout();
-    }
+  document.querySelectorAll('[data-close]').forEach(b => {
+    b.addEventListener('click', () => $(b.dataset.close).classList.remove('open'));
   });
-}
-if ($('btnLimparCarrinho')) {
-  $('btnLimparCarrinho').addEventListener('click', () => {
-    if (!carrinho.itens.length) { toast('Carrinho já está vazio.'); return; }
-    if (!confirm('Limpar todos os itens do carrinho?')) return;
-    carrinho.itens = [];
-    pedidoEmFechamento = false;
-    cupomAplicado = null;
-    renderCarrinho();
-    atualizarTotais();
-    toast('Carrinho limpo');
-  });
-}
-if ($('btnFinalizarCarrinho')) {
-  $('btnFinalizarCarrinho').addEventListener('click', async () => {
-    if (!usuario) { $('carrinhoDrawer').classList.remove('open'); $('drawerBackdrop').classList.remove('open'); abrirLogin(); return; }
-    if (!carrinho.itens.length) { toast('Carrinho vazio.'); return; }
-    pedidoEmFechamento = true;
-    atualizarTotais();
-    $('carrinhoDrawer').classList.remove('open');
-    $('drawerBackdrop').classList.remove('open');
-    await carregarEnderecos();
-    abrirCheckout();
-  });
-}
-if ($('btnAplicarCupom')) $('btnAplicarCupom').addEventListener('click', aplicarCupom);
-if ($('cupomInput')) {
-  $('cupomInput').addEventListener('keydown', e => {
-    if (e.key === 'Enter') { e.preventDefault(); aplicarCupom(); }
-  });
-}
-if ($('listaPedidos')) {
-  $('listaPedidos').addEventListener('click', e => {
-    const item = e.target.closest('[data-pedido]');
-    if (item) carregarPedidoNoCarrinho(item.dataset.pedido);
-  });
-}
-
-document.querySelectorAll('[data-close]').forEach(b => {
-  b.addEventListener('click', () => {
-    $(b.dataset.close).classList.remove('open');
-    if (b.dataset.close === 'checkoutOverlay') {
-      pedidoEmFechamento = false;
-      cupomAplicado = null;
-      const msg = $('cupomMsg'); if (msg) { msg.textContent = ''; msg.className = 'cupom-msg'; }
-      const inp = $('cupomInput'); if (inp) inp.value = '';
-      atualizarTotais();
-    }
-  });
-});
   document.querySelectorAll('[data-close-drawer]').forEach(b => {
     b.addEventListener('click', () => {
       $(b.dataset.closeDrawer).classList.remove('open');
