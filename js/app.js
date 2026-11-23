@@ -25,6 +25,8 @@ let qtdBatata = 0;
 let batataSelecionada = null;
 let bebidasSelecionadas = [];
 let extrasNoCarrinho = [];
+let receitasSelecionadas = [];
+let itensCardapioNoCarrinho = [];
 
 let precoBase = 12.00;
 let inclusosPadrao = ['alface', 'tomate', 'cebola', 'ketchup', 'maionese'];
@@ -125,6 +127,9 @@ async function carregarConfiguracoes() {
     if (c.chave === 'cidade_fixa') cidadeFixa = c.valor;
     if (c.chave === 'estado_fixo') estadoFixo = c.valor;
   });
+  // Retirada na loja sempre disponível (taxa 0,00)
+  retiradaAtiva = true;
+
 
   if ($('endCidade')) $('endCidade').value = cidadeFixa;
   if ($('endEstado')) $('endEstado').value = estadoFixo;
@@ -221,8 +226,9 @@ function renderEnderecosModal() {
       <label class="endereco-card ${tipoEntrega === 'retirada' ? 'selected' : ''}">
         <input type="radio" name="tipoEntrega" value="retirada" ${tipoEntrega === 'retirada' ? 'checked' : ''}>
         <div>
-          <div class="endereco-rotulo">Retirada no local</div>
-          <div class="meta">Você busca o pedido no balcão — sem taxa</div>
+          <div class="endereco-rotulo">Retirada na loja</div>
+          <div class="meta">Você busca o pedido no balcão</div>
+          <div class="meta" style="color:var(--accent-text)">Taxa: R$ 0,00</div>
         </div>
       </label>
     `;
@@ -676,15 +682,91 @@ function renderCarrinho() {
 }
 
 function renderReceitas() {
-  $('listaReceitas').innerHTML = catalogo.receitas.map(r => `
-    <button class="drawer-item" style="width:100%; text-align:left; margin-bottom:8px;" data-receita="${r.id}">
-      <div>
-        <h1 class="receita-nome">${esc(r.nome)}</h1>
-        <div class="meta">${esc(r.descricao || '')}</div>
+  const host = $('listaReceitas');
+  if (!host) return;
+  if (!catalogo.receitas.length) {
+    host.innerHTML = '<p class="empty-state">Nenhuma receita cadastrada.</p>';
+    return;
+  }
+  host.innerHTML = catalogo.receitas.map(r => {
+    const sel = receitasSelecionadas.find(x => x.id === r.id);
+    const qtd = sel ? sel.quantidade : 0;
+    const ctrl = qtd === 0
+      ? `<button type="button" class="add-btn" data-rec-add="${r.id}">+</button>`
+      : `<div class="qty-control">
+           <button type="button" data-rec-dec="${r.id}">−</button>
+           <span>${qtd}</span>
+           <button type="button" data-rec-inc="${r.id}">+</button>
+         </div>`;
+    return `
+      <div class="drawer-item" style="margin-bottom:8px;">
+        <div style="min-width:0;">
+          <h1 class="receita-nome">${esc(r.nome)}</h1>
+          <div class="meta">${esc(r.descricao || '')}</div>
+          <div class="meta" style="color:var(--accent-text); margin-top:4px;">${fmt(precoReceita(r.id))}</div>
+        </div>
+        <div style="flex-shrink:0;">${ctrl}</div>
       </div>
-      <span style="color:var(--accent-text);">${fmt(precoReceita(r.id))}</span>
-    </button>
-  `).join('') || '<p class="empty-state">Nenhuma receita cadastrada.</p>';
+    `;
+  }).join('');
+}
+
+function setQtdReceita(id, qtd) {
+  const idx = receitasSelecionadas.findIndex(x => x.id === id);
+  if (qtd <= 0) {
+    if (idx >= 0) receitasSelecionadas.splice(idx, 1);
+  } else if (idx >= 0) {
+    receitasSelecionadas[idx].quantidade = qtd;
+  } else {
+    receitasSelecionadas.push({ id: id, quantidade: qtd });
+  }
+  renderReceitas();
+}
+
+async function concluirCardapio() {
+  if (!receitasSelecionadas.length) {
+    toast('Escolha pelo menos uma receita.');
+    return;
+  }
+  if (itensCardapioNoCarrinho.length) {
+    carrinho.itens = carrinho.itens.filter(i => !itensCardapioNoCarrinho.includes(i));
+    itensCardapioNoCarrinho = [];
+  }
+  for (const sel of receitasSelecionadas) {
+    const r = catalogo.receitas.find(x => x.id === sel.id);
+    if (!r) continue;
+    const camadas = {};
+    const inclusos = {};
+    const { data } = await supabase
+      .from('receita_itens')
+      .select('ingrediente_id, incluso_id, quantidade')
+      .eq('receita_id', r.id);
+    (data || []).forEach(it => {
+      if (it.ingrediente_id) {
+        camadas[it.ingrediente_id] = (camadas[it.ingrediente_id] || 0) + (Number(it.quantidade) || 1);
+      }
+      if (it.incluso_id) inclusos[it.incluso_id] = true;
+    });
+    const item = {
+      nome: r.nome,
+      tipo: 'receita',
+      camadas: camadas,
+      inclusos: inclusos,
+      observacao: '',
+      preco: precoReceita(r.id) * sel.quantidade,
+      quantidade: sel.quantidade
+    };
+    carrinho.itens.push(item);
+    itensCardapioNoCarrinho.push(item);
+  }
+  receitasSelecionadas = [];
+  $('receitasOverlay').classList.remove('open');
+  renderCarrinho();
+  pedidoEmFechamento = true;
+  atualizarTotais();
+  await carregarEnderecos();
+  abrirCheckout();
+  irParaEtapa('endereco');
 }
 
 async function renderSalvos() {
@@ -1044,6 +1126,7 @@ async function finalizarPedido(e) {
 
   carrinho.itens = [];
   extrasNoCarrinho = [];
+  itensCardapioNoCarrinho = [];
   pedidoEmFechamento = false;
   cupomAplicado = null;
   $('checkoutOverlay').classList.remove('open');
@@ -1101,6 +1184,27 @@ async function aplicarCupom() {
   atualizarResumoCheckout();
 }
 
+function nomesIngredientesDoItem(i) {
+  const nomes = [];
+  if (i.inclusos) {
+    Object.keys(i.inclusos).forEach(id => {
+      if (!i.inclusos[id]) return;
+      const inc = catalogo.inclusos.find(x => x.id === id);
+      if (inc) nomes.push(inc.nome);
+    });
+  }
+  if (i.camadas) {
+    Object.keys(i.camadas).forEach(id => {
+      const q = i.camadas[id];
+      if (!q) return;
+      const ing = catalogo.ingredientes.find(x => x.id === id);
+      if (!ing) return;
+      nomes.push(q > 1 ? ing.nome + ' (' + q + 'x)' : ing.nome);
+    });
+  }
+  return nomes;
+}
+
 function renderCheckoutItens() {
   const host = $('checkoutItens');
   if (!host) return;
@@ -1108,11 +1212,15 @@ function renderCheckoutItens() {
     host.innerHTML = '<li class="empty-state">Nenhum item no pedido.</li>';
     return;
   }
-  host.innerHTML = carrinho.itens.map((i, idx) => `
+  host.innerHTML = carrinho.itens.map((i, idx) => {
+    const ings = nomesIngredientesDoItem(i);
+    const lista = ings.length ? ings.join(', ') : '';
+    return `
     <li class="drawer-item">
       <div style="min-width:0;">
         <div class="item-nome">${esc(i.nome)}</div>
         <div class="meta">${fmt(i.preco)}</div>
+        ${lista ? `<div class="item-ingredientes">${esc(lista)}</div>` : ''}
       </div>
       <div style="display:flex; align-items:center; gap:6px; flex-shrink:0;">
         <div class="qty-control">
@@ -1123,7 +1231,8 @@ function renderCheckoutItens() {
         <button type="button" class="item-remove" data-ck-del="${idx}" aria-label="Excluir">×</button>
       </div>
     </li>
-  `).join('');
+  `;
+  }).join('');
 }
 
 async function repetirUltimoPedido() {
@@ -1155,7 +1264,7 @@ async function repetirUltimoPedido() {
     quantidade: it.quantidade || 1
   }));
   extrasNoCarrinho = [];
-  extrasNoCarrinho = [];
+  itensCardapioNoCarrinho = [];
   pedidoEmFechamento = false;
   cupomAplicado = null;
   $('perfilOverlay').classList.remove('open');
@@ -1163,9 +1272,36 @@ async function repetirUltimoPedido() {
   atualizarTotais();
   toast('Último pedido adicionado ao carrinho');
 }
+function precoAtualDoItem(it) {
+  if (it.tipo === 'montagem' && it.camadas && Object.keys(it.camadas).length) {
+    const camadasAntigas = montagem.camadas;
+    const inclusosAntigos = montagem.inclusos;
+    montagem.camadas = { ...it.camadas };
+    montagem.inclusos = { ...(it.inclusos || {}) };
+    const preco = precoMontagem();
+    montagem.camadas = camadasAntigas;
+    montagem.inclusos = inclusosAntigos;
+    return preco;
+  }
+  if (it.tipo === 'receita') {
+    const r = catalogo.receitas.find(x => x.nome === it.nome);
+    if (r) return precoReceita(r.id);
+  }
+  if (it.tipo === 'adicional') {
+    const a = catalogo.extras.find(x => x.nome === it.nome);
+    if (a) return Number(a.preco);
+  }
+  if (it.tipo === 'bebida') {
+    const b = catalogo.bebidas.find(x => it.nome.indexOf(x.nome) === 0);
+    if (b) return Number(b.preco);
+  }
+  return null;
+}
+
 async function carregarPedidoNoCarrinho(pedidoId) {
   if (!usuario) { abrirLogin(); return; }
   if (!pedidoId) return;
+  if (!confirm('Deseja repetir esse pedido?')) return;
   const { data: itens, error } = await supabase
     .from('pedido_itens')
     .select('*')
@@ -1174,24 +1310,30 @@ async function carregarPedidoNoCarrinho(pedidoId) {
     toast('Não foi possível recuperar os itens do pedido.');
     return;
   }
-  if (carrinho.itens.length) {
-    if (!confirm('Seu carrinho tem itens. Deseja substituir por este pedido?')) return;
-  }
-  carrinho.itens = itens.map(it => ({
-    nome: it.nome,
-    tipo: it.tipo || 'montagem',
-    camadas: it.camadas || {},
-    inclusos: it.inclusos || {},
-    observacao: it.observacao || '',
-    preco: Number(it.preco_unitario) * (it.quantidade || 1),
-    quantidade: it.quantidade || 1
-  }));
-  pedidoEmFechamento = false;
+  carrinho.itens = itens.map(it => {
+    const qtd = it.quantidade || 1;
+    const atual = precoAtualDoItem(it);
+    const unitario = atual !== null ? atual : Number(it.preco_unitario);
+    return {
+      nome: it.nome,
+      tipo: it.tipo || 'montagem',
+      camadas: it.camadas || {},
+      inclusos: it.inclusos || {},
+      observacao: it.observacao || '',
+      preco: unitario * qtd,
+      quantidade: qtd
+    };
+  });
+  extrasNoCarrinho = [];
+  itensCardapioNoCarrinho = [];
+  pedidoEmFechamento = true;
   cupomAplicado = null;
   $('perfilOverlay').classList.remove('open');
   renderCarrinho();
   atualizarTotais();
-  toast('Itens do pedido adicionados ao carrinho');
+  await carregarEnderecos();
+  abrirCheckout();
+  irParaEtapa('endereco');
 }
 
 // ============ EVENTOS ============
@@ -1332,13 +1474,27 @@ $('checkout').addEventListener('click', async () => {
   });
 
   $('btnReceitas').addEventListener('click', () => {
+    receitasSelecionadas = [];
     renderReceitas();
     $('receitasOverlay').classList.add('open');
   });
   $('listaReceitas').addEventListener('click', e => {
-    const b = e.target.closest('[data-receita]');
-    if (b) carregarReceita(b.dataset.receita);
+    const add = e.target.closest('[data-rec-add]');
+    const inc = e.target.closest('[data-rec-inc]');
+    const dec = e.target.closest('[data-rec-dec]');
+    if (add) setQtdReceita(add.dataset.recAdd, 1);
+    if (inc) {
+      const id = inc.dataset.recInc;
+      const sel = receitasSelecionadas.find(x => x.id === id);
+      setQtdReceita(id, (sel ? sel.quantidade : 0) + 1);
+    }
+    if (dec) {
+      const id = dec.dataset.recDec;
+      const sel = receitasSelecionadas.find(x => x.id === id);
+      setQtdReceita(id, (sel ? sel.quantidade : 0) - 1);
+    }
   });
+  if ($('btnCardapioConcluir')) $('btnCardapioConcluir').addEventListener('click', concluirCardapio);
 
   $('btnCarrinho').addEventListener('click', () => {
     renderCarrinho();
@@ -1417,6 +1573,7 @@ if ($('btnLimparCarrinho')) {
     if (!confirm('Limpar todos os itens do carrinho?')) return;
     carrinho.itens = [];
     extrasNoCarrinho = [];
+    itensCardapioNoCarrinho = [];
     pedidoEmFechamento = false;
     cupomAplicado = null;
     renderCarrinho();
