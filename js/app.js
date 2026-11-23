@@ -223,11 +223,11 @@ function renderEnderecosModal() {
 
   if (retiradaAtiva) {
     html += `
-      <label class="endereco-card ${tipoEntrega === 'retirada' ? 'selected' : ''}">
+      <label class="endereco-card retirada-compacta ${tipoEntrega === 'retirada' ? 'selected' : ''}">
         <input type="radio" name="tipoEntrega" value="retirada" ${tipoEntrega === 'retirada' ? 'checked' : ''}>
         <div>
           <div class="endereco-rotulo">Retirada na loja</div>
-          <div class="meta">Você busca o pedido no balcão</div>
+          <div class="meta">Retirada no balcão da loja</div>
           <div class="meta" style="color:var(--accent-text)">Taxa: R$ 0,00</div>
         </div>
       </label>
@@ -1217,7 +1217,7 @@ function renderCheckoutItens() {
     const lista = ings.length ? ings.join(', ') : '';
     return `
     <li class="drawer-item">
-      <div style="min-width:0;">
+      <div class="item-linha-topo" style="min-width:0;">
         <div class="item-nome">${esc(i.nome)}</div>
         <div class="meta">${fmt(i.preco)}</div>
         ${lista ? `<div class="item-ingredientes">${esc(lista)}</div>` : ''}
@@ -1473,11 +1473,27 @@ $('checkout').addEventListener('click', async () => {
     abrirLogin(!modoCadastro);
   });
 
-  $('btnReceitas').addEventListener('click', () => {
-    receitasSelecionadas = [];
-    renderReceitas();
-    $('receitasOverlay').classList.add('open');
-  });
+  if ($('btnCardapio')) {
+    $('btnCardapio').addEventListener('click', () => {
+      receitasSelecionadas = [];
+      renderReceitas();
+      $('receitasOverlay').classList.add('open');
+    });
+  }
+  if ($('btnSelecionar')) {
+    $('btnSelecionar').addEventListener('click', async () => {
+      if (!usuario) { abrirLogin(); return; }
+      if (!carrinho.itens.length && !Object.keys(montagem.camadas).length) {
+        toast('Monte ou adicione algo antes de continuar.');
+        return;
+      }
+      if (Object.keys(montagem.camadas).length) adicionarAoCarrinho();
+      pedidoEmFechamento = true;
+      atualizarTotais();
+      await carregarEnderecos();
+      abrirCheckout();
+    });
+  }
   $('listaReceitas').addEventListener('click', e => {
     const add = e.target.closest('[data-rec-add]');
     const inc = e.target.closest('[data-rec-inc]');
