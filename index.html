@@ -93,6 +93,22 @@ input, textarea { font-family: inherit; }
   border-color: #FFD84D;
   color: #1A1A1A;
 }
+/* Botão Selecionar — abre a etapa de adicionais */
+.selecionar-btn {
+  background: transparent;
+  border-color: var(--border);
+  color: var(--text);
+  font-weight: 500;
+  width: 100%;
+  justify-content: center;
+  height: 38px;
+  margin-bottom: 12px;
+}
+.selecionar-btn:hover {
+  background: rgba(217,162,74,0.12);
+  border-color: var(--accent);
+  color: var(--accent-text);
+}
 /* Layout */
 .app-main {
   margin-top: 64px; display: grid;
@@ -593,16 +609,6 @@ input, textarea { font-family: inherit; }
 }
 #etapaEndereco #checkoutItens .item-remove:hover { color: #E8806F; }
 
-/* Lista de ingredientes dentro do item do pedido */
-.item-ingredientes {
-  font-size: 0.72rem;
-  color: var(--text-muted);
-  line-height: 1.4;
-  margin-top: 3px;
-  max-width: 100%;
-  word-break: break-word;
-}
-
 /* Botão finalizar pedido em verde */
 #btnFinalizarPedido, #btnFinalizarCarrinho, #btnExtrasContinuar {
   background: #2E7D4F; color: #fff; border-color: #2E7D4F; font-weight: 500;
@@ -647,14 +653,21 @@ input, textarea { font-family: inherit; }
 </header>
 <main class="app-main">
   <section>
-    <button class="menu-btn cardapio-btn" id="btnReceitas" title="Cardápio" aria-label="Cardápio">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
-        <path d="M4 5h7M4 10h7M4 15h7M4 20h7"/><path d="M15 4l5 3-5 3z"/><path d="M15 13h5M15 17h5"/>
+    <div class="chips-row">
+      <button class="menu-btn cardapio-btn" id="btnCardapio" title="Cardápio" aria-label="Cardápio">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+          <path d="M4 5h7M4 10h7M4 15h7M4 20h7"/><path d="M15 4l5 3-5 3z"/><path d="M15 13h5M15 17h5"/>
+        </svg>
+        <span>Cardápio</span>
+      </button>
+      <div class="category-chips" id="chipsCategoria"></div>
+    </div>
+    <button class="menu-btn selecionar-btn" id="btnSelecionar" title="Selecionar adicionais" aria-label="Selecionar adicionais">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 5v14M5 12h14"/>
       </svg>
-      <span>Cardápio</span>
+      <span>Selecionar</span>
     </button>
-
-    <div class="category-chips" id="chipsCategoria"></div>
     <div class="section-head"><h2>Inclusos no hambúrguer</h2></div>
     <div class="inclusos-chips" id="listaInclusos"></div>
     <div id="listaIngredientes"></div>
