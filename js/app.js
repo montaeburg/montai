@@ -677,6 +677,9 @@ function renderCarrinho() {
     `).join('');
   }
   $('cartCount').textContent = carrinho.itens.length;
+  const totalCarrinho = carrinho.itens.reduce((s, i) => s + i.preco, 0);
+  const elTotal = $('carrinhoTotal');
+  if (elTotal) elTotal.textContent = fmt(totalCarrinho);
   atualizarTotais();
 }
 
@@ -765,7 +768,6 @@ async function concluirCardapio() {
   atualizarTotais();
   await carregarEnderecos();
   abrirCheckout();
-  irParaEtapa('endereco');
 }
 
 async function renderSalvos() {
@@ -800,7 +802,6 @@ function atualizarTotais() {
 }
 
 function renderTudo() {
-  renderChips();
   renderInclusos();
   renderIngredientes();
   renderBurger();
@@ -1350,14 +1351,6 @@ function configurarEventos() {
       abrirWhatsApp('Preciso redefinir minha senha');
     });
   }
-  $('chipsCategoria').addEventListener('click', e => {
-    const chip = e.target.closest('.chip');
-    if (!chip) return;
-    document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
-    chip.classList.add('active');
-    catAtiva = chip.dataset.cat;
-    renderIngredientes();
-  });
 
   $('listaIngredientes').addEventListener('click', e => {
     const t = e.target.closest('button');
@@ -1581,6 +1574,8 @@ if ($('btnLimparCarrinho')) {
     cupomAplicado = null;
     renderCarrinho();
     atualizarTotais();
+    $('carrinhoDrawer').classList.remove('open');
+    $('drawerBackdrop').classList.remove('open');
     toast('Carrinho limpo');
   });
 }
