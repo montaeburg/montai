@@ -57,6 +57,12 @@ input, textarea { font-family: inherit; }
 }
 .icon-btn:hover { background: rgba(217,162,74,0.12); color: var(--accent-text); }
 .icon-btn svg { width: 20px; height: 20px; }
+.icon-btn .whatsapp-img {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+  display: block;
+}
 .icon-btn .badge {
   position: absolute; top: 0; right: 0; min-width: 16px; height: 16px; padding: 0 4px;
   border-radius: 999px; background: var(--accent); color: #0A0A0A;
@@ -74,6 +80,19 @@ input, textarea { font-family: inherit; }
 }
 .menu-btn:hover { background: rgba(217,162,74,0.12); color: var(--accent-text); }
 .menu-btn svg { width: 18px; height: 18px; }
+/* Botão Cardápio — amarelo, acima dos chips */
+.cardapio-btn {
+  background: #F2C230;
+  border-color: #F2C230;
+  color: #1A1A1A;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+.cardapio-btn:hover {
+  background: #FFD84D;
+  border-color: #FFD84D;
+  color: #1A1A1A;
+}
 /* Layout */
 .app-main {
   margin-top: 64px; display: grid;
@@ -517,7 +536,8 @@ input, textarea { font-family: inherit; }
   .app-header { height: 56px; padding: 0 12px; }
   .app-main { margin-top: 56px; }
   .menu-btn { padding: 0 12px; font-size: 0.72rem; }
-  .menu-btn span { display: none; }
+  .menu-btn span { display: inline; }
+  .cardapio-btn { font-size: 0.72rem; padding: 0 12px; }
   .logo-img { width: 34px; height: 34px; }
   .wordmark { font-size: 1.2rem; }
 }
@@ -573,6 +593,16 @@ input, textarea { font-family: inherit; }
 }
 #etapaEndereco #checkoutItens .item-remove:hover { color: #E8806F; }
 
+/* Lista de ingredientes dentro do item do pedido */
+.item-ingredientes {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  line-height: 1.4;
+  margin-top: 3px;
+  max-width: 100%;
+  word-break: break-word;
+}
+
 /* Botão finalizar pedido em verde */
 #btnFinalizarPedido, #btnFinalizarCarrinho, #btnExtrasContinuar {
   background: #2E7D4F; color: #fff; border-color: #2E7D4F; font-weight: 500;
@@ -593,17 +623,8 @@ input, textarea { font-family: inherit; }
     <div class="wordmark">monta<span>í</span> seu hamburguer</div>
   </div>
   <div class="header-actions">
-    <button class="menu-btn" id="btnReceitas" title="Menu" aria-label="Menu">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
-        <path d="M4 5h7M4 10h7M4 15h7M4 20h7"/><path d="M15 4l5 3-5 3z"/><path d="M15 13h5M15 17h5"/>
-      </svg>
-      <span>Menu</span>
-    </button>
     <button class="icon-btn" id="btnWhatsapp" title="Falar no WhatsApp" aria-label="Falar no WhatsApp">
-      <svg viewBox="0 0 24 24" fill="currentColor" stroke="none">
-        <path d="M17.5 14.4c-.3-.2-1.8-.9-2-1s-.5-.2-.7.1-.8 1-1 1.2-.4.2-.7 0a8 8 0 0 1-2.4-1.5 9 9 0 0 1-1.6-2c-.2-.3 0-.5.1-.6l.5-.6.3-.5v-.5l-1-2.3c-.2-.6-.5-.5-.7-.5h-.6c-.2 0-.5.1-.8.4-.3.3-1 1-1 2.5s1.1 2.9 1.2 3.1c.2.2 2.1 3.2 5.1 4.5.7.3 1.3.5 1.7.6.7.2 1.4.2 1.9.1.6-.1 1.8-.7 2-1.4.3-.7.3-1.3.2-1.4-.1-.1-.3-.2-.6-.3z"/>
-        <path d="M12 2a10 10 0 1 0 5.1 18.6L22 22l-1.4-4.9A10 10 0 0 0 12 2zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2z"/>
-      </svg>
+      <img src="https://drkukjvqjnogqhryaayg.supabase.co/storage/v1/object/public/logo/pngtree-whatsapp-phone-icon-png-image_6618450.png" alt="WhatsApp" class="whatsapp-img">
     </button>
     <button class="icon-btn" id="btnSalvos" title="Hambúrgueres salvos" aria-label="Hambúrgueres salvos">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round">
@@ -626,6 +647,13 @@ input, textarea { font-family: inherit; }
 </header>
 <main class="app-main">
   <section>
+    <button class="menu-btn cardapio-btn" id="btnReceitas" title="Cardápio" aria-label="Cardápio">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+        <path d="M4 5h7M4 10h7M4 15h7M4 20h7"/><path d="M15 4l5 3-5 3z"/><path d="M15 13h5M15 17h5"/>
+      </svg>
+      <span>Cardápio</span>
+    </button>
+
     <div class="category-chips" id="chipsCategoria"></div>
     <div class="section-head"><h2>Inclusos no hambúrguer</h2></div>
     <div class="inclusos-chips" id="listaInclusos"></div>
@@ -818,6 +846,9 @@ input, textarea { font-family: inherit; }
     <h3>Menu</h3>
     <p class="muted-sm">Escolha um clássico e ajuste do seu jeito.</p>
     <div id="listaReceitas"></div>
+    <div class="etapa-actions" style="margin-top:16px; border-bottom:none; padding-bottom:0;">
+      <button type="button" class="btn-solid" id="btnCardapioConcluir">Concluir</button>
+    </div>
   </div>
 </div>
 <!-- Modal Perfil -->
