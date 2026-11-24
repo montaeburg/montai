@@ -50,7 +50,7 @@ const IMG_VERSION = Date.now();
 const LAYER_ORDER = [
   'bun-bottom', 'ketchup', 'maionese', 'molho-especial',
   'patty', 'extra-patty', 'cheese', 'bacon', 'calabresa', 'egg',
- 'lettuce', 'tomato', 'onion',
+  'onion','lettuce', 'tomato',
   'straw', 'doritos', 'bun-top'
 ];
  
