@@ -1,3 +1,4 @@
+index.html
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -137,6 +138,24 @@ color: var(--accent-text);
   background: #FFD84D;
   border-color: #FFD84D;
   color: #1A1A1A;
+}
+/* Horário de funcionamento ao lado do botão Cardápio */
+.horario-info {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+.horario-linha {
+  font-size: 0.76rem;
+  color: var(--accent-text);
+  font-weight: 500;
+  white-space: nowrap;
+}
+.horario-obs {
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  line-height: 1.2;
 }
 /* Layout */
 .app-main {
@@ -726,6 +745,10 @@ class="logo-img"
 </svg>
 <span>Cardápio pronto</span>
 </button>
+<div class="horario-info">
+<div class="horario-linha">Quinta a domingo, 19h às 23:30</div>
+<div class="horario-obs">Você pode fazer seu pedido antes da abertura</div>
+</div>
 </div>
 <div class="section-head"><h2>Inclusos no hambúrguer</h2></div>
 <div class="inclusos-chips" id="listaInclusos"></div>
@@ -799,7 +822,7 @@ Sua montagem começa com o pão.<br>Adicione um ingrediente para ver o hambúrgu
 </div>
 <div class="form-field">
 <label for="loginSenha">Senha</label>
-<input id="loginSenha" type="password" placeholder="Mínimo 6 caracteres" autocomplete="current-password" required>
+<input id="loginSenha" type="password" placeholder="Mínimo 6 caracteres" autocomplete="new-password" required>
 </div>
 <p class="error-msg" id="loginError"></p>
 <button type="submit" class="btn-solid" style="width:100%;" id="loginSubmit">Entrar</button>
