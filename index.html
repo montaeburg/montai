@@ -700,6 +700,9 @@ background: #2E7D4F; color: #fff; border-color: #2E7D4F; font-weight: 500;
 #btnFinalizarPedido:hover, #btnFinalizarCarrinho:hover, #btnExtrasContinuar:hover {
 background: #36A05F; border-color: #36A05F;
 }
+/* Login sempre acima de qualquer modal ou drawer */
+#loginOverlay { z-index: 200; }
+
 </style>
 </head>
 <body>
@@ -974,6 +977,6 @@ Esqueci minha senha
 </aside>
 <div class="toast-host" id="toastHost"></div>
 <script src="js/config.js"></script>
-<script type="module" src="js/app.js?v=12"></script>
+<script type="module" src="js/app.js?v=13"></script>
 </body>
 </html>
