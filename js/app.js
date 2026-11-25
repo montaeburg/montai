@@ -37,6 +37,7 @@ let precosReceita = {};
 let retiradaAtiva = false;
 let tipoEntrega = 'entrega';
 let pedidoEmFechamento = false;
+let retomarCheckoutAposLogin = false;
 let cupomAplicado = null;
  
 let taxaPadrao = 5.00;
@@ -317,7 +318,7 @@ function atualizarResumoCheckout() {
 }
  
 async function salvarEndereco() {
-  if (!usuario) { abrirLogin(); return; }
+  if (!usuario) { retomarCheckoutAposLogin = true; abrirLogin(); return; }
  
   const rotulo = ($('endRotulo')?.value || '').trim() || 'Casa';
   const rua = ($('endRua')?.value || '').trim();
@@ -452,7 +453,7 @@ function irParaEtapa(etapa) {
 }
  
 function confirmarExtras() {
-  if (!usuario) { abrirLogin(); return; }
+  if (!usuario) { retomarCheckoutAposLogin = true; abrirLogin(); return; }
   // Remove os itens de extras que foram adicionados numa confirmação anterior
   if (extrasNoCarrinho.length) {
     carrinho.itens = carrinho.itens.filter(i => !extrasNoCarrinho.includes(i));
@@ -920,6 +921,12 @@ async function processarLogin(e) {
     toast('Conta criada!');
     await carregarEnderecos();
     renderSalvos();
+    if (retomarCheckoutAposLogin) {
+      retomarCheckoutAposLogin = false;
+      await carregarEnderecos();
+      renderEnderecosModal();
+      atualizarResumoCheckout();
+    }
     return;
   }
  
@@ -936,6 +943,12 @@ async function processarLogin(e) {
   toast('Bem-vindo de volta!');
   await carregarEnderecos();
   renderSalvos();
+  if (retomarCheckoutAposLogin) {
+    retomarCheckoutAposLogin = false;
+    await carregarEnderecos();
+    renderEnderecosModal();
+    atualizarResumoCheckout();
+  }
 }
  
 async function verificarSessao() {
@@ -1070,7 +1083,7 @@ async function carregarSalvo(id) {
  
 async function finalizarPedido(e) {
   e.preventDefault();
-  if (!usuario) { $('checkoutOverlay').classList.remove('open'); abrirLogin(); return; }
+  if (!usuario) { retomarCheckoutAposLogin = true; abrirLogin(); return; }
   if (!carrinho.itens.length) { toast('Carrinho vazio.'); return; }
  
   let endereco = null;
@@ -1485,6 +1498,14 @@ $('checkout').addEventListener('click', async () => {
   if ($('enderecoForm')) $('enderecoForm').addEventListener('submit', finalizarPedido);
  
   $('loginForm').addEventListener('submit', processarLogin);
+  if ($('loginOverlay')) {
+    $('loginOverlay').addEventListener('click', e => {
+      if (e.target === $('loginOverlay')) {
+        $('loginOverlay').classList.remove('open');
+        retomarCheckoutAposLogin = false;
+      }
+    });
+  }
   $('toggleModo').addEventListener('click', e => {
     e.preventDefault();
     abrirLogin(!modoCadastro);
@@ -1646,6 +1667,7 @@ document.querySelectorAll('[data-close]').forEach(b => {
   b.addEventListener('click', () => {
     $(b.dataset.close).classList.remove('open');
     if (b.dataset.close === 'checkoutOverlay') {
+      retomarCheckoutAposLogin = false;
       pedidoEmFechamento = false;
       cupomAplicado = null;
       const msg = $('cupomMsg'); if (msg) { msg.textContent = ''; msg.className = 'cupom-msg'; }
